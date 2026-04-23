@@ -102,7 +102,7 @@ BeLive Studios is the content and IP engine of a vertically integrated content a
 
 - Human review required before posting branded or client-facing content
 - Autonomous posting only for low-risk, pre-approved templates
-- CEO (Latif) handles strategic approvals only
+- CEO handles strategic approvals only
 - Day-to-day operation: Kevin or assigned social media manager
 
 ---
