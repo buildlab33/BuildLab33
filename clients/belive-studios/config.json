@@ -1,7 +1,7 @@
 {
   "client": "BeLive Studios",
-  "contact": "",
-  "platforms": [],
+  "contact": "Latif",
+  "platforms": ["Instagram", "LinkedIn", "TikTok", "YouTube", "Facebook"],
   "google_sheets_id": "",
   "timezone": "Asia/Singapore",
   "active": true
