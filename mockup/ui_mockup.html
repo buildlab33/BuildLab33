@@ -23,7 +23,8 @@
     --sidebar-width: 240px;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; -webkit-text-size-adjust: 100%; }
+  button { cursor: pointer; -webkit-appearance: none; touch-action: manipulation; }
 
   /* LOGIN */
   #login-screen { position: fixed; inset: 0; background: #0f172a; display: flex; align-items: center; justify-content: center; z-index: 1000; }
@@ -332,7 +333,7 @@
         <option value="guest">Guest</option>
       </select>
     </div>
-    <button class="btn-primary" onclick="doLogin()">Sign In</button>
+    <button class="btn-primary" onclick="doLogin()" type="button">Sign In</button>
     <p class="login-hint">Demo: select any role to see different access levels</p>
   </div>
 </div>
