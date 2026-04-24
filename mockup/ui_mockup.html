@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COP Platform — Content & Outreach Platform</title>
+<style>
+  :root {
+    --sidebar-bg: #0f172a;
+    --sidebar-text: #94a3b8;
+    --sidebar-active: #ffffff;
+    --sidebar-active-bg: #1e3a5f;
+    --accent: #3b82f6;
+    --accent-hover: #2563eb;
+    --bg: #f8fafc;
+    --card-bg: #ffffff;
+    --text: #0f172a;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --success: #22c55e;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --sidebar-width: 240px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
+
+  /* LOGIN */
+  #login-screen { position: fixed; inset: 0; background: #0f172a; display: flex; align-items: center; justify-content: center; z-index: 1000; }
+  .login-box { background: #1e293b; border-radius: 16px; padding: 48px; width: 400px; border: 1px solid #334155; }
+  .login-logo { text-align: center; margin-bottom: 32px; }
+  .login-logo .logo-icon { width: 56px; height: 56px; background: var(--accent); border-radius: 14px; display: inline-flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 12px; }
+  .login-logo h1 { color: #fff; font-size: 22px; font-weight: 700; }
+  .login-logo p { color: #94a3b8; font-size: 13px; margin-top: 4px; }
+  .form-group { margin-bottom: 18px; }
+  .form-group label { display: block; color: #94a3b8; font-size: 13px; margin-bottom: 6px; font-weight: 500; }
+  .form-group input, .form-group select { width: 100%; padding: 10px 14px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; color: #fff; font-size: 14px; outline: none; transition: border-color 0.2s; }
+  .form-group input:focus, .form-group select:focus { border-color: var(--accent); }
+  .form-group select option { background: #1e293b; }
+  .btn-primary { width: 100%; padding: 12px; background: var(--accent); color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .login-hint { text-align: center; color: #475569; font-size: 12px; margin-top: 20px; }
+
+  /* SIDEBAR */
+  #sidebar { width: var(--sidebar-width); background: var(--sidebar-bg); min-height: 100vh; display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 100; }
+  .sidebar-logo { padding: 20px 20px 16px; border-bottom: 1px solid #1e293b; }
+  .sidebar-logo .logo-row { display: flex; align-items: center; gap: 10px; }
+  .sidebar-logo .logo-icon { width: 36px; height: 36px; background: var(--accent); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .sidebar-logo h2 { color: #fff; font-size: 15px; font-weight: 700; }
+  .sidebar-logo p { color: #475569; font-size: 11px; margin-top: 1px; }
+  .sidebar-section { padding: 16px 12px 8px; }
+  .sidebar-section-label { color: #475569; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; padding: 0 8px; margin-bottom: 4px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; cursor: pointer; color: var(--sidebar-text); font-size: 14px; font-weight: 500; transition: all 0.15s; margin-bottom: 2px; }
+  .nav-item:hover { background: #1e293b; color: #fff; }
+  .nav-item.active { background: var(--sidebar-active-bg); color: var(--sidebar-active); }
+  .nav-item .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+  .nav-badge { margin-left: auto; background: var(--accent); color: #fff; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 10px; }
+  .nav-badge.orange { background: var(--warning); }
+  .sidebar-bottom { margin-top: auto; padding: 16px 12px; border-top: 1px solid #1e293b; }
+  .user-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; cursor: pointer; }
+  .user-row:hover { background: #1e293b; }
+  .user-avatar { width: 32px; height: 32px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+  .user-info { flex: 1; min-width: 0; }
+  .user-info .user-name { color: #fff; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .user-info .user-role { color: #475569; font-size: 11px; }
+  .brand-switcher { padding: 12px 12px 0; }
+  .brand-select { width: 100%; padding: 8px 10px; background: #1e293b; border: 1px solid #334155; border-radius: 8px; color: #94a3b8; font-size: 13px; outline: none; cursor: pointer; }
+
+  /* MAIN */
+  #main { margin-left: var(--sidebar-width); flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+  .topbar { height: 60px; background: var(--card-bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 28px; gap: 16px; position: sticky; top: 0; z-index: 50; }
+  .topbar h1 { font-size: 18px; font-weight: 700; flex: 1; }
+  .topbar-actions { display: flex; align-items: center; gap: 10px; }
+  .btn { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; }
+  .btn-accent { background: var(--accent); color: #fff; }
+  .btn-accent:hover { background: var(--accent-hover); }
+  .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .btn-outline:hover { background: var(--bg); }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn-success { background: var(--success); color: #fff; }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .content { padding: 28px; flex: 1; }
+
+  /* SCREENS */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* STAT CARDS */
+  .stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 28px; }
+  .stat-card { background: var(--card-bg); border-radius: 12px; padding: 20px; border: 1px solid var(--border); }
+  .stat-card .stat-label { color: var(--text-muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+  .stat-card .stat-value { font-size: 32px; font-weight: 800; margin: 8px 0 4px; }
+  .stat-card .stat-sub { color: var(--text-muted); font-size: 12px; }
+  .stat-card.blue .stat-value { color: var(--accent); }
+  .stat-card.orange .stat-value { color: var(--warning); }
+  .stat-card.green .stat-value { color: var(--success); }
+  .stat-card.red .stat-value { color: var(--danger); }
+  .stat-card.purple .stat-value { color: #8b5cf6; }
+
+  /* CARDS */
+  .card { background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border); margin-bottom: 20px; }
+  .card-header { padding: 18px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .card-header h3 { font-size: 15px; font-weight: 700; }
+  .card-body { padding: 20px; }
+
+  /* KANBAN */
+  .kanban { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .kanban-col { background: #f1f5f9; border-radius: 12px; padding: 16px; }
+  .kanban-col-header { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+  .kanban-col-header .col-count { background: var(--border); color: var(--text-muted); padding: 2px 7px; border-radius: 10px; font-size: 11px; }
+  .post-card { background: var(--card-bg); border-radius: 10px; padding: 14px; margin-bottom: 10px; border: 1px solid var(--border); cursor: pointer; transition: box-shadow 0.15s; }
+  .post-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+  .post-card-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .platform-badge { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; }
+  .platform-badge.linkedin { background: #dbeafe; color: #1d4ed8; }
+  .platform-badge.instagram { background: #fce7f3; color: #be185d; }
+  .platform-badge.tiktok { background: #f3f4f6; color: #111827; }
+  .platform-badge.facebook { background: #eff6ff; color: #1d4ed8; }
+  .platform-badge.youtube { background: #fee2e2; color: #b91c1c; }
+  .post-card-text { font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-bottom: 10px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .post-card-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .post-card-actions .btn { font-size: 11px; padding: 4px 10px; }
+  .post-engagement { display: flex; gap: 12px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .engagement-item { display: flex; align-items: center; gap: 4px; color: var(--text-muted); font-size: 12px; }
+
+  /* GENERATE WIZARD */
+  .wizard-steps { display: flex; align-items: center; gap: 0; margin-bottom: 28px; }
+  .wizard-step { display: flex; align-items: center; gap: 8px; }
+  .wizard-step-num { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; background: var(--border); color: var(--text-muted); }
+  .wizard-step.active .wizard-step-num { background: var(--accent); color: #fff; }
+  .wizard-step.done .wizard-step-num { background: var(--success); color: #fff; }
+  .wizard-step-label { font-size: 13px; font-weight: 600; color: var(--text-muted); }
+  .wizard-step.active .wizard-step-label { color: var(--text); }
+  .wizard-connector { flex: 1; height: 2px; background: var(--border); margin: 0 8px; min-width: 24px; }
+  .wizard-connector.done { background: var(--success); }
+  .platform-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-top: 12px; }
+  .platform-option { border: 2px solid var(--border); border-radius: 10px; padding: 14px 10px; text-align: center; cursor: pointer; transition: all 0.15s; }
+  .platform-option:hover { border-color: var(--accent); background: #eff6ff; }
+  .platform-option.selected { border-color: var(--accent); background: #eff6ff; }
+  .platform-option .p-icon { font-size: 22px; margin-bottom: 6px; }
+  .platform-option .p-name { font-size: 12px; font-weight: 600; }
+  .results-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 20px; }
+  .result-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+  .result-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .result-card-text { font-size: 14px; line-height: 1.7; color: var(--text); background: #f8fafc; border-radius: 8px; padding: 14px; border: 1px solid var(--border); min-height: 120px; }
+  .result-card-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .copy-btn { display: flex; align-items: center; gap: 6px; padding: 7px 12px; border: 1px solid var(--border); border-radius: 7px; background: var(--card-bg); cursor: pointer; font-size: 12px; font-weight: 600; color: var(--text-muted); transition: all 0.15s; }
+  .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* CALENDAR */
+  .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .cal-header { text-align: center; font-size: 12px; font-weight: 700; color: var(--text-muted); padding: 8px; text-transform: uppercase; }
+  .cal-day { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px; min-height: 80px; cursor: pointer; transition: border-color 0.15s; }
+  .cal-day:hover { border-color: var(--accent); }
+  .cal-day.today { border-color: var(--accent); background: #eff6ff; }
+  .cal-day.other-month { opacity: 0.4; }
+  .cal-day-num { font-size: 12px; font-weight: 700; margin-bottom: 4px; }
+  .cal-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin: 1px; }
+  .cal-clash { background: var(--danger); }
+  .cal-scheduled { background: var(--accent); }
+  .cal-published { background: var(--success); }
+
+  /* NEWS */
+  .news-feed { display: flex; flex-direction: column; gap: 14px; }
+  .news-item { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 18px; display: flex; gap: 16px; }
+  .news-source-badge { flex-shrink: 0; }
+  .source-tag { font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; background: #dbeafe; color: #1d4ed8; }
+  .news-content { flex: 1; }
+  .news-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+  .news-snippet { font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 10px; }
+  .news-meta { display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--text-muted); }
+  .news-actions { display: flex; gap: 8px; margin-top: 12px; }
+
+  /* LEAD GENERATION */
+  .lead-search-bar { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+  .lead-search-bar input, .lead-search-bar select { padding: 9px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: var(--card-bg); outline: none; }
+  .lead-search-bar input:focus, .lead-search-bar select:focus { border-color: var(--accent); }
+  .lead-search-bar input { flex: 1; min-width: 200px; }
+  .leads-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .lead-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 16px; position: relative; }
+  .lead-card.duplicate { border-color: var(--warning); }
+  .lead-score { position: absolute; top: 14px; right: 14px; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; }
+  .score-high { background: #dcfce7; color: #16a34a; }
+  .score-mid { background: #fef9c3; color: #ca8a04; }
+  .score-low { background: #fee2e2; color: #dc2626; }
+  .lead-company { font-size: 15px; font-weight: 700; margin-bottom: 4px; padding-right: 44px; }
+  .lead-contact { font-size: 13px; color: var(--text-muted); margin-bottom: 8px; }
+  .lead-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .tag { font-size: 11px; padding: 3px 8px; border-radius: 5px; background: #f1f5f9; color: var(--text-muted); font-weight: 600; }
+  .duplicate-flag { background: #fef9c3; color: #92400e; font-size: 11px; padding: 4px 10px; border-radius: 6px; margin-bottom: 8px; font-weight: 600; }
+  .lead-status-badge { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; }
+  .status-found { background: #dbeafe; color: #1d4ed8; }
+  .status-enriched { background: #dcfce7; color: #16a34a; }
+  .status-contacted { background: #fef9c3; color: #92400e; }
+  .status-replied { background: #f3e8ff; color: #7c3aed; }
+
+  /* OUTREACH */
+  .outreach-layout { display: grid; grid-template-columns: 320px 1fr; gap: 20px; }
+  .lead-list { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .lead-list-item { padding: 14px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.15s; }
+  .lead-list-item:hover { background: #f8fafc; }
+  .lead-list-item.selected { background: #eff6ff; border-left: 3px solid var(--accent); }
+  .lead-list-item .li-name { font-size: 14px; font-weight: 700; }
+  .lead-list-item .li-company { font-size: 12px; color: var(--text-muted); }
+  .li-status { margin-top: 4px; }
+  .message-panel { display: flex; flex-direction: column; gap: 14px; }
+  .message-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+  .message-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .message-channel { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 6px; }
+  .channel-email { background: #dbeafe; color: #1d4ed8; }
+  .channel-linkedin { background: #e0f2fe; color: #0369a1; }
+  .message-step { font-size: 12px; color: var(--text-muted); }
+  .message-body { font-size: 13px; line-height: 1.7; color: var(--text); background: #f8fafc; border-radius: 8px; padding: 14px; border: 1px solid var(--border); margin-bottom: 12px; }
+  .reply-badge { display: inline-flex; align-items: center; gap: 6px; background: #f3e8ff; color: #7c3aed; font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 8px; margin-bottom: 10px; }
+
+  /* SEQUENCE BUILDER */
+  .sequence-templates { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 24px; }
+  .template-card { border: 2px solid var(--border); border-radius: 12px; padding: 16px; cursor: pointer; transition: all 0.15s; }
+  .template-card:hover { border-color: var(--accent); }
+  .template-card.selected { border-color: var(--accent); background: #eff6ff; }
+  .template-card h4 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .template-card p { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+  .template-duration { font-size: 11px; font-weight: 700; color: var(--accent); }
+  .sequence-steps { display: flex; flex-direction: column; gap: 10px; }
+  .sequence-step-row { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; gap: 14px; }
+  .step-num { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+  .step-details { flex: 1; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .step-details select { padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; background: var(--card-bg); outline: none; }
+  .step-connector { text-align: center; color: var(--text-muted); font-size: 18px; }
+  .add-step-btn { border: 2px dashed var(--border); border-radius: 10px; padding: 14px; text-align: center; cursor: pointer; color: var(--text-muted); font-size: 13px; font-weight: 600; transition: all 0.15s; }
+  .add-step-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* BRANDS */
+  .brands-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 28px; }
+  .brand-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .brand-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .brand-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .brand-icon.yeon { background: #dbeafe; }
+  .brand-icon.belive { background: #fce7f3; }
+  .brand-name { font-size: 16px; font-weight: 700; margin-bottom: 2px; }
+  .brand-industry { font-size: 12px; color: var(--text-muted); }
+  .brand-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 14px 0; }
+  .brand-stat { text-align: center; background: #f8fafc; border-radius: 8px; padding: 10px; }
+  .brand-stat-num { font-size: 18px; font-weight: 800; color: var(--accent); }
+  .brand-stat-label { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .archived-section { margin-top: 8px; }
+  .archived-section h3 { font-size: 13px; font-weight: 700; color: var(--text-muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .brand-card.archived { opacity: 0.6; border-style: dashed; }
+
+  /* SETTINGS */
+  .settings-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+  .settings-tab { padding: 10px 18px; font-size: 14px; font-weight: 600; cursor: pointer; color: var(--text-muted); border-bottom: 2px solid transparent; transition: all 0.15s; }
+  .settings-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .settings-tab:hover { color: var(--text); }
+  .user-table { width: 100%; border-collapse: collapse; }
+  .user-table th { text-align: left; padding: 10px 14px; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
+  .user-table td { padding: 14px; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .user-table tr:last-child td { border-bottom: none; }
+  .role-select { padding: 5px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; background: var(--card-bg); outline: none; }
+  .theme-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+  .theme-swatch { border: 2px solid var(--border); border-radius: 10px; overflow: hidden; cursor: pointer; transition: border-color 0.15s; }
+  .theme-swatch:hover { border-color: var(--accent); }
+  .theme-swatch.selected { border-color: var(--accent); }
+  .theme-preview { height: 56px; display: flex; }
+  .theme-sidebar-preview { width: 30%; }
+  .theme-main-preview { flex: 1; }
+  .theme-name { font-size: 12px; font-weight: 600; padding: 8px; text-align: center; }
+
+  /* CLASH MODAL */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 500; }
+  .modal { background: var(--card-bg); border-radius: 16px; padding: 28px; width: 440px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+  .modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .modal p { font-size: 14px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.6; }
+  .modal-options { display: flex; flex-direction: column; gap: 10px; }
+  .modal-option { border: 2px solid var(--border); border-radius: 10px; padding: 14px 16px; cursor: pointer; transition: all 0.15s; }
+  .modal-option:hover { border-color: var(--accent); background: #eff6ff; }
+  .modal-option h4 { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+  .modal-option p { font-size: 12px; color: var(--text-muted); margin: 0; }
+
+  /* ACTIVITY LOG */
+  .log-table { width: 100%; border-collapse: collapse; }
+  .log-table th { text-align: left; padding: 10px 14px; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); background: #f8fafc; }
+  .log-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .log-action { font-weight: 600; }
+  .log-action.post { color: var(--accent); }
+  .log-action.outreach { color: #8b5cf6; }
+  .log-action.login { color: var(--success); }
+  .log-action.brand { color: var(--warning); }
+
+  /* MISC */
+  .section-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+  .empty-state { text-align: center; padding: 48px; color: var(--text-muted); }
+  .empty-state .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; }
+  .form-row { display: flex; gap: 14px; margin-bottom: 14px; }
+  .form-field { flex: 1; }
+  .form-field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; color: var(--text-muted); }
+  .form-field input, .form-field select, .form-field textarea { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: var(--card-bg); outline: none; transition: border-color 0.15s; }
+  .form-field input:focus, .form-field select:focus, .form-field textarea:focus { border-color: var(--accent); }
+  .form-field textarea { resize: vertical; min-height: 80px; }
+  .divider { height: 1px; background: var(--border); margin: 20px 0; }
+  .alert { padding: 12px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .alert-info { background: #dbeafe; color: #1d4ed8; }
+  .alert-warning { background: #fef9c3; color: #92400e; }
+  .alert-success { background: #dcfce7; color: #16a34a; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="logo-icon">🚀</div>
+      <h1>COP Platform</h1>
+      <p>Content & Outreach Platform by BuildLab33</p>
+    </div>
+    <div class="form-group">
+      <label>Email address</label>
+      <input type="email" placeholder="you@company.com" value="kevin@buildlab33.com">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" placeholder="••••••••" value="••••••••">
+    </div>
+    <div class="form-group">
+      <label>Login as</label>
+      <select id="role-select">
+        <option value="superadmin">Super Admin</option>
+        <option value="admin">Admin</option>
+        <option value="user">User</option>
+        <option value="guest">Guest</option>
+      </select>
+    </div>
+    <button class="btn-primary" onclick="doLogin()">Sign In</button>
+    <p class="login-hint">Demo: select any role to see different access levels</p>
+  </div>
+</div>
+
+<!-- CLASH MODAL -->
+<div class="modal-overlay" id="clash-modal" style="display:none;">
+  <div class="modal">
+    <h3>⚠️ Scheduling Clash Detected</h3>
+    <p>A LinkedIn post for <strong>Yeon Studios</strong> is already scheduled at <strong>2:00 PM on May 2</strong> — 15 minutes before your selected time. How would you like to proceed?</p>
+    <div class="modal-options">
+      <div class="modal-option" onclick="closeModal()">
+        <h4>📌 Post anyway at same time</h4>
+        <p>Schedule both posts at 2:00 PM on the same platform</p>
+      </div>
+      <div class="modal-option" onclick="closeModal()">
+        <h4>⏭ Suggest next available slot</h4>
+        <p>System recommends the next open slot: 3:30 PM on May 2</p>
+      </div>
+      <div class="modal-option" onclick="closeModal()">
+        <h4>🗓 Pick a different time manually</h4>
+        <p>Open the calendar to choose your preferred date and time</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<div id="sidebar" style="display:none;">
+  <div class="sidebar-logo">
+    <div class="logo-row">
+      <div class="logo-icon">🚀</div>
+      <div>
+        <h2>COP Platform</h2>
+        <p>BuildLab33</p>
+      </div>
+    </div>
+  </div>
+  <div class="brand-switcher">
+    <select class="brand-select">
+      <option>🎬 Yeon Studios</option>
+      <option>🌟 BeLive Studios</option>
+    </select>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Overview</div>
+    <div class="nav-item active" onclick="showScreen('dashboard', this)"><span class="nav-icon">📊</span> Dashboard</div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Content</div>
+    <div class="nav-item" onclick="showScreen('generate', this)"><span class="nav-icon">✨</span> Generate</div>
+    <div class="nav-item" onclick="showScreen('posts', this)"><span class="nav-icon">📝</span> Posts <span class="nav-badge orange">3</span></div>
+    <div class="nav-item" onclick="showScreen('calendar', this)"><span class="nav-icon">📅</span> Calendar</div>
+    <div class="nav-item" onclick="showScreen('news', this)"><span class="nav-icon">📰</span> News</div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Outreach</div>
+    <div class="nav-item" onclick="showScreen('leads', this)"><span class="nav-icon">🎯</span> Lead Generation</div>
+    <div class="nav-item" onclick="showScreen('outreach', this)"><span class="nav-icon">📨</span> Outreach <span class="nav-badge">2</span></div>
+    <div class="nav-item" onclick="showScreen('sequences', this)"><span class="nav-icon">🔁</span> Sequences</div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Management</div>
+    <div class="nav-item" onclick="showScreen('brands', this)"><span class="nav-icon">🏢</span> Brands</div>
+    <div class="nav-item superadmin-only" onclick="showScreen('settings', this)"><span class="nav-icon">⚙️</span> Settings</div>
+    <div class="nav-item superadmin-only" onclick="showScreen('logs', this)"><span class="nav-icon">📋</span> Audit Log</div>
+  </div>
+  <div class="sidebar-bottom">
+    <div class="user-row">
+      <div class="user-avatar" id="user-avatar">K</div>
+      <div class="user-info">
+        <div class="user-name" id="user-name">Kevin Chng</div>
+        <div class="user-role" id="user-role-label">Super Admin</div>
+      </div>
+      <span style="color:#475569;cursor:pointer;" onclick="logout()">↩</span>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div id="main" style="display:none;">
+  <div class="topbar">
+    <h1 id="page-title">Dashboard</h1>
+    <div class="topbar-actions" id="topbar-actions"></div>
+  </div>
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="screen active" id="screen-dashboard">
+      <div class="stats-grid">
+        <div class="stat-card blue"><div class="stat-label">Posts Generated Today</div><div class="stat-value">12</div><div class="stat-sub">↑ 4 from yesterday</div></div>
+        <div class="stat-card orange"><div class="stat-label">Pending Approval</div><div class="stat-value">3</div><div class="stat-sub">Oldest: 2 hrs ago</div></div>
+        <div class="stat-card green"><div class="stat-label">Scheduled This Week</div><div class="stat-value">18</div><div class="stat-sub">Across 5 platforms</div></div>
+        <div class="stat-card purple"><div class="stat-label">Leads in Pipeline</div><div class="stat-value">34</div><div class="stat-sub">8 high-score leads</div></div>
+        <div class="stat-card red"><div class="stat-label">Replies This Week</div><div class="stat-value">5</div><div class="stat-sub">2 meetings booked</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <div class="card">
+          <div class="card-header"><h3>📝 Recent Posts</h3><button class="btn btn-accent btn-sm" onclick="showScreen('generate',null)">+ Generate</button></div>
+          <div class="card-body">
+            <div class="post-card">
+              <div class="post-card-meta"><span class="platform-badge linkedin">LinkedIn</span><span style="font-size:12px;color:var(--text-muted);">Yeon Studios · 1h ago</span></div>
+              <div class="post-card-text">The next wave of OTT infrastructure isn't about bandwidth — it's about intelligence. We're seeing a fundamental shift in how content platforms think about their distribution stack...</div>
+              <div class="post-card-actions"><span style="font-size:11px;font-weight:700;color:var(--warning);">● Pending Approval</span></div>
+            </div>
+            <div class="post-card">
+              <div class="post-card-meta"><span class="platform-badge instagram">Instagram</span><span style="font-size:12px;color:var(--text-muted);">BeLive Studios · 3h ago</span></div>
+              <div class="post-card-text">Behind every great story is a team that refuses to settle. This week, our production crew wrapped the most technically ambitious microdrama we've ever produced...</div>
+              <div class="post-engagement"><span class="engagement-item">❤️ 142</span><span class="engagement-item">💬 18</span><span class="engagement-item">↗️ 34</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>🎯 Top Leads This Week</h3><button class="btn btn-outline btn-sm" onclick="showScreen('leads',null)">View All</button></div>
+          <div class="card-body">
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;align-items:center;gap:12px;padding:10px;background:#f8fafc;border-radius:8px;">
+                <div class="lead-score score-high" style="position:static;width:32px;height:32px;font-size:12px;">9</div>
+                <div style="flex:1;"><div style="font-size:14px;font-weight:700;">Viu Southeast Asia</div><div style="font-size:12px;color:var(--text-muted);">Head of Platform · OTT · Singapore</div></div>
+                <span class="lead-status-badge status-enriched">Enriched</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:10px;background:#f8fafc;border-radius:8px;">
+                <div class="lead-score score-high" style="position:static;width:32px;height:32px;font-size:12px;">8</div>
+                <div style="flex:1;"><div style="font-size:14px;font-weight:700;">meWatch Singapore</div><div style="font-size:12px;color:var(--text-muted);">Content Director · Media · Singapore</div></div>
+                <span class="lead-status-badge status-contacted">Contacted</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:10px;background:#f8fafc;border-radius:8px;">
+                <div class="lead-score score-mid" style="position:static;width:32px;height:32px;font-size:12px;">7</div>
+                <div style="flex:1;"><div style="font-size:14px;font-weight:700;">Toggle.sg</div><div style="font-size:12px;color:var(--text-muted);">VP Partnerships · OTT · Singapore</div></div>
+                <span class="lead-status-badge status-replied">Replied ✓</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GENERATE -->
+    <div class="screen" id="screen-generate">
+      <div class="wizard-steps">
+        <div class="wizard-step done"><div class="wizard-step-num">✓</div><div class="wizard-step-label">Brand</div></div>
+        <div class="wizard-connector done"></div>
+        <div class="wizard-step done"><div class="wizard-step-num">✓</div><div class="wizard-step-label">Pillar</div></div>
+        <div class="wizard-connector done"></div>
+        <div class="wizard-step done"><div class="wizard-step-num">✓</div><div class="wizard-step-label">Platforms</div></div>
+        <div class="wizard-connector done"></div>
+        <div class="wizard-step active"><div class="wizard-step-num">4</div><div class="wizard-step-label">Brief</div></div>
+        <div class="wizard-connector"></div>
+        <div class="wizard-step"><div class="wizard-step-num">5</div><div class="wizard-step-label">Results</div></div>
+      </div>
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header"><h3>Selected Options</h3></div>
+        <div class="card-body" style="display:flex;gap:16px;flex-wrap:wrap;">
+          <div><span style="font-size:12px;font-weight:700;color:var(--text-muted);">BRAND</span><div style="font-size:14px;font-weight:700;margin-top:4px;">🎬 Yeon Studios</div></div>
+          <div><span style="font-size:12px;font-weight:700;color:var(--text-muted);">CONTENT PILLAR</span><div style="font-size:14px;font-weight:700;margin-top:4px;">Industry Authority</div></div>
+          <div><span style="font-size:12px;font-weight:700;color:var(--text-muted);">PLATFORMS</span><div style="display:flex;gap:6px;margin-top:4px;"><span class="platform-badge linkedin">LinkedIn</span><span class="platform-badge instagram">Instagram</span><span class="platform-badge tiktok">TikTok</span></div></div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-header"><h3>Content Brief <span style="font-size:12px;color:var(--text-muted);font-weight:400;">— optional, AI will generate from brand pillars if left blank</span></h3></div>
+        <div class="card-body">
+          <textarea style="width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;font-size:14px;resize:vertical;min-height:80px;outline:none;" placeholder="Describe what this post should be about, or paste a news headline to use as inspiration...">Singapore OTT market grew 23% in Q1 2026 according to Media Partners Asia — opportunity to position Yeon Studios as the infrastructure layer powering this growth.</textarea>
+          <div style="margin-top:12px;display:flex;gap:10px;">
+            <button class="btn btn-accent" onclick="showResults()">✨ Generate Posts</button>
+            <button class="btn btn-outline">← Back</button>
+          </div>
+        </div>
+      </div>
+      <div id="generate-results" style="display:none;">
+        <div class="alert alert-success">✅ 3 posts generated successfully. Review each one below.</div>
+        <div class="results-grid">
+          <div class="result-card">
+            <div class="result-card-header"><span class="platform-badge linkedin">LinkedIn</span><span style="font-size:12px;color:var(--text-muted);">183 words</span></div>
+            <div class="result-card-text">Singapore's OTT market grew 23% in Q1 2026 — but the real story isn't the viewers. It's the infrastructure holding it together.<br><br>At Yeon Studios, we've spent the last three years building the systems that let content platforms scale without compromising on data ownership or monetisation control. When the market grows this fast, the platforms that win are the ones with infrastructure that was designed to scale from day one.<br><br>The next 12 months will separate the platforms that built on solid foundations from those that didn't.<br><br>What does your distribution stack look like at 10x current load?</div>
+            <div class="result-card-actions">
+              <button class="copy-btn" onclick="copyText(this)">📋 Copy Text</button>
+              <button class="btn btn-success btn-sm">✓ Approve</button>
+              <button class="btn btn-outline btn-sm">✏️ Edit</button>
+              <button class="btn btn-outline btn-sm" style="color:var(--danger);border-color:var(--danger);">✕ Discard</button>
+            </div>
+          </div>
+          <div class="result-card">
+            <div class="result-card-header"><span class="platform-badge instagram">Instagram</span><span style="font-size:12px;color:var(--text-muted);">212 words</span></div>
+            <div class="result-card-text">23% growth in one quarter. The Singapore OTT market isn't slowing down — and neither are we. 🚀<br><br>Behind every streaming platform that's scaling right now is an infrastructure story. The CDN choices, the data architecture, the monetisation layer — these are the decisions that determine whether a platform survives its own growth or collapses under it.<br><br>We built Yeon Studios to be the infrastructure partner that OTT platforms call when they're serious about scale. Not just content. The whole stack.<br><br>DM us or link in bio to learn how we're helping platforms in SEA future-proof their distribution.<br><br>#OTT #StreamingTech #YeonStudios #Singapore #ContentInfrastructure #MediaTech</div>
+            <div class="result-card-actions">
+              <button class="copy-btn" onclick="copyText(this)">📋 Copy Text</button>
+              <button class="btn btn-success btn-sm">✓ Approve</button>
+              <button class="btn btn-outline btn-sm">✏️ Edit</button>
+              <button class="btn btn-outline btn-sm" style="color:var(--danger);border-color:var(--danger);">✕ Discard</button>
+            </div>
+          </div>
+          <div class="result-card">
+            <div class="result-card-header"><span class="platform-badge tiktok">TikTok</span><span style="font-size:12px;color:var(--text-muted);">72 words</span></div>
+            <div class="result-card-text">OTT in Singapore just grew 23% 📈<br><br>You know what that means? Every platform that wasn't ready for scale is sweating right now.<br><br>The ones that planned ahead? They're eating.<br><br>Infrastructure isn't sexy. But it's the reason some platforms 10x and others crash at their peak.<br><br>This is what we do at Yeon Studios. We build the backbone. 🏗️</div>
+            <div class="result-card-actions">
+              <button class="copy-btn" onclick="copyText(this)">📋 Copy Text</button>
+              <button class="btn btn-success btn-sm">✓ Approve</button>
+              <button class="btn btn-outline btn-sm">✏️ Edit</button>
+              <button class="btn btn-outline btn-sm" style="color:var(--danger);border-color:var(--danger);">✕ Discard</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- POSTS -->
+    <div class="screen" id="screen-posts">
+      <div class="kanban">
+        <div class="kanban-col">
+          <div class="kanban-col-header">Drafts <span class="col-count">2</span></div>
+          <div class="post-card">
+            <div class="post-card-meta"><span class="platform-badge youtube">YouTube</span></div>
+            <div class="post-card-text">How Yeon Studios built a proprietary OTT distribution system that handles 4K streams at scale — a behind-the-scenes look at our infrastructure...</div>
+            <div class="post-card-actions"><button class="btn btn-accent btn-sm">Submit for Approval</button><button class="copy-btn" style="border:none;">📋</button></div>
+          </div>
+          <div class="post-card">
+            <div class="post-card-meta"><span class="platform-badge facebook">Facebook</span></div>
+            <div class="post-card-text">BeLive Studios is proud to announce our latest microdrama series — 12 episodes, 3 languages, one unforgettable story...</div>
+            <div class="post-card-actions"><button class="btn btn-accent btn-sm">Submit for Approval</button><button class="copy-btn" style="border:none;">📋</button></div>
+          </div>
+        </div>
+        <div class="kanban-col">
+          <div class="kanban-col-header">Pending Approval <span class="col-count" style="background:var(--warning);color:#fff;">3</span></div>
+          <div class="post-card" style="border-left:3px solid var(--warning);">
+            <div class="post-card-meta"><span class="platform-badge linkedin">LinkedIn</span><span style="font-size:11px;color:var(--text-muted);">2h ago</span></div>
+            <div class="post-card-text">The next wave of OTT infrastructure isn't about bandwidth — it's about intelligence. We're seeing a fundamental shift...</div>
+            <div class="post-card-actions"><button class="btn btn-success btn-sm">✓ Approve</button><button class="btn btn-outline btn-sm">✏️ Edit</button><button class="copy-btn" style="border:none;">📋</button></div>
+          </div>
+          <div class="post-card" style="border-left:3px solid var(--warning);">
+            <div class="post-card-meta"><span class="platform-badge tiktok">TikTok</span><span style="font-size:11px;color:var(--text-muted);">4h ago</span></div>
+            <div class="post-card-text">OTT in Singapore just grew 23% 📈 You know what that means? Every platform that wasn't ready for scale is sweating...</div>
+            <div class="post-card-actions"><button class="btn btn-success btn-sm">✓ Approve</button><button class="btn btn-outline btn-sm">✏️ Edit</button><button class="copy-btn" style="border:none;">📋</button></div>
+          </div>
+        </div>
+        <div class="kanban-col">
+          <div class="kanban-col-header">Scheduled <span class="col-count">5</span></div>
+          <div class="post-card">
+            <div class="post-card-meta"><span class="platform-badge instagram">Instagram</span></div>
+            <div class="post-card-text">Behind every great story is a team that refuses to settle. This week, our production crew wrapped the most technically ambitious...</div>
+            <div style="font-size:12px;color:var(--accent);font-weight:600;margin-top:8px;">📅 May 2, 2:00 PM</div>
+            <div class="post-card-actions"><button class="btn btn-outline btn-sm" onclick="showClashModal()">⚠️ Reschedule</button><button class="copy-btn" style="border:none;">📋</button></div>
+          </div>
+          <div class="post-card">
+            <div class="post-card-meta"><span class="platform-badge linkedin">LinkedIn</span></div>
+            <div class="post-card-text">Singapore's OTT market grew 23% in Q1 2026 — but the real story isn't the viewers. It's the infrastructure holding it together...</div>
+            <div style="font-size:12px;color:var(--accent);font-weight:600;margin-top:8px;">📅 May 3, 10:00 AM</div>
+            <div class="post-card-actions"><button class="btn btn-outline btn-sm">✎ Reschedule</button><button class="copy-btn" style="border:none;">📋</button></div>
+          </div>
+        </div>
+        <div class="kanban-col">
+          <div class="kanban-col-header">Published <span class="col-count" style="background:var(--success);color:#fff;">8</span></div>
+          <div class="post-card">
+            <div class="post-card-meta"><span class="platform-badge instagram">Instagram</span><span style="font-size:11px;color:var(--text-muted);">Apr 28</span></div>
+            <div class="post-card-text">Cinematic storytelling meets data-driven distribution. The future of content isn't just creative — it's intelligent...</div>
+            <div class="post-engagement"><span class="engagement-item">❤️ 284</span><span class="engagement-item">💬 31</span><span class="engagement-item">↗️ 67</span></div>
+            <div class="post-card-actions"><button class="btn btn-danger btn-sm">✕ Remove</button></div>
+          </div>
+          <div class="post-card">
+            <div class="post-card-meta"><span class="platform-badge linkedin">LinkedIn</span><span style="font-size:11px;color:var(--text-muted);">Apr 27</span></div>
+            <div class="post-card-text">We've spent three years building the OTT infrastructure stack that platforms in SEA deserve. Here's what we've learned...</div>
+            <div class="post-engagement"><span class="engagement-item">👍 142</span><span class="engagement-item">💬 18</span><span class="engagement-item">↗️ 34</span></div>
+            <div class="post-card-actions"><button class="btn btn-danger btn-sm">✕ Remove</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CALENDAR -->
+    <div class="screen" id="screen-calendar">
+      <div class="card">
+        <div class="card-header">
+          <h3>May 2026</h3>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text-muted);"><span class="cal-dot cal-published"></span> Published</span>
+            <span style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text-muted);"><span class="cal-dot cal-scheduled"></span> Scheduled</span>
+            <span style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text-muted);"><span class="cal-dot cal-clash"></span> Clash</span>
+            <button class="btn btn-outline btn-sm">← Apr</button>
+            <button class="btn btn-outline btn-sm">Jun →</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="calendar-grid">
+            <div class="cal-header">Mon</div><div class="cal-header">Tue</div><div class="cal-header">Wed</div><div class="cal-header">Thu</div><div class="cal-header">Fri</div><div class="cal-header">Sat</div><div class="cal-header">Sun</div>
+            <div class="cal-day other-month"><div class="cal-day-num">28</div></div>
+            <div class="cal-day other-month"><div class="cal-day-num">29</div></div>
+            <div class="cal-day other-month"><div class="cal-day-num">30</div></div>
+            <div class="cal-day"><div class="cal-day-num">1</div><span class="cal-dot cal-published"></span><span class="cal-dot cal-published"></span></div>
+            <div class="cal-day"><div class="cal-day-num">2</div><span class="cal-dot cal-scheduled"></span><span class="cal-dot cal-clash" title="Scheduling clash"></span></div>
+            <div class="cal-day"><div class="cal-day-num">3</div><span class="cal-dot cal-scheduled"></span></div>
+            <div class="cal-day"><div class="cal-day-num">4</div></div>
+            <div class="cal-day today"><div class="cal-day-num" style="color:var(--accent);">5</div><span class="cal-dot cal-scheduled"></span><span class="cal-dot cal-scheduled"></span><span class="cal-dot cal-scheduled"></span></div>
+            <div class="cal-day"><div class="cal-day-num">6</div><span class="cal-dot cal-scheduled"></span></div>
+            <div class="cal-day"><div class="cal-day-num">7</div><span class="cal-dot cal-scheduled"></span><span class="cal-dot cal-scheduled"></span></div>
+            <div class="cal-day"><div class="cal-day-num">8</div></div>
+            <div class="cal-day"><div class="cal-day-num">9</div><span class="cal-dot cal-scheduled"></span></div>
+            <div class="cal-day"><div class="cal-day-num">10</div></div>
+            <div class="cal-day"><div class="cal-day-num">11</div></div>
+            <div class="cal-day"><div class="cal-day-num">12</div><span class="cal-dot cal-scheduled"></span><span class="cal-dot cal-scheduled"></span></div>
+            <div class="cal-day"><div class="cal-day-num">13</div><span class="cal-dot cal-scheduled"></span></div>
+            <div class="cal-day"><div class="cal-day-num">14</div></div>
+            <div class="cal-day"><div class="cal-day-num">15</div><span class="cal-dot cal-scheduled"></span></div>
+            <div class="cal-day"><div class="cal-day-num">16</div><span class="cal-dot cal-scheduled"></span></div>
+            <div class="cal-day"><div class="cal-day-num">17</div></div>
+            <div class="cal-day"><div class="cal-day-num">18</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NEWS -->
+    <div class="screen" id="screen-news">
+      <div class="alert alert-info">📰 Showing latest news relevant to <strong>Yeon Studios</strong> — updated 12 minutes ago. All sources verified. No fabricated content.</div>
+      <div class="news-feed">
+        <div class="news-item">
+          <div class="news-source-badge"><div class="source-tag">Media Partners Asia</div></div>
+          <div class="news-content">
+            <div class="news-title">Singapore OTT Market Grows 23% in Q1 2026, Driven by Local Content Investment</div>
+            <div class="news-snippet">Southeast Asia's streaming landscape continues its rapid expansion, with Singapore leading the region in subscriber growth and content spend. Analysts point to increased local IP production as the primary driver of platform differentiation...</div>
+            <div class="news-meta"><span>🕐 2 hours ago</span><span>🔗 mediapartnersasia.com</span><span style="color:var(--success);font-weight:700;">✓ Verified Source</span></div>
+            <div class="news-actions"><button class="btn btn-accent btn-sm">✨ Use in Post</button><button class="btn btn-outline btn-sm">🎯 Use in Outreach</button></div>
+          </div>
+        </div>
+        <div class="news-item">
+          <div class="news-source-badge"><div class="source-tag">Variety Asia</div></div>
+          <div class="news-content">
+            <div class="news-title">Regional OTT Platforms Double Down on Original IP as Competition Intensifies</div>
+            <div class="news-snippet">With Netflix and Disney+ squeezing margins, Southeast Asian OTT operators are racing to develop proprietary content libraries. The move signals a strategic shift from aggregation to original IP ownership as the primary competitive moat...</div>
+            <div class="news-meta"><span>🕐 5 hours ago</span><span>🔗 variety.com</span><span style="color:var(--success);font-weight:700;">✓ Verified Source</span></div>
+            <div class="news-actions"><button class="btn btn-accent btn-sm">✨ Use in Post</button><button class="btn btn-outline btn-sm">🎯 Use in Outreach</button></div>
+          </div>
+        </div>
+        <div class="news-item">
+          <div class="news-source-badge"><div class="source-tag">The Business Times</div></div>
+          <div class="news-content">
+            <div class="news-title">MDA Singapore Announces $50M Fund for Local Digital Content Production</div>
+            <div class="news-snippet">The Media Development Authority has launched a new grant scheme targeting local studios and production houses developing original content for digital platforms. Applications open May 15, with priority given to projects targeting pan-Asian audiences...</div>
+            <div class="news-meta"><span>🕐 1 day ago</span><span>🔗 businesstimes.com.sg</span><span style="color:var(--success);font-weight:700;">✓ Verified Source</span></div>
+            <div class="news-actions"><button class="btn btn-accent btn-sm">✨ Use in Post</button><button class="btn btn-outline btn-sm">🎯 Use in Outreach</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEAD GENERATION -->
+    <div class="screen" id="screen-leads">
+      <div class="lead-search-bar">
+        <input type="text" placeholder="🔍  Search by company, industry, or keyword...">
+        <select><option>All Industries</option><option selected>OTT / Streaming</option><option>Media & Entertainment</option><option>Content Production</option></select>
+        <select><option>All Locations</option><option selected>Singapore</option><option>SEA Region</option><option>Korea</option></select>
+        <select><option>All Sizes</option><option>10–50 staff</option><option selected>50–500 staff</option><option>500+ staff</option></select>
+        <button class="btn btn-accent">🔍 Find Leads</button>
+        <button class="btn btn-outline">📥 Import CSV</button>
+      </div>
+      <div class="alert alert-warning">⚠️ 2 leads flagged as possible duplicates — review before proceeding.</div>
+      <div class="leads-grid">
+        <div class="lead-card">
+          <div class="lead-score score-high">9</div>
+          <div class="lead-company">Viu Southeast Asia</div>
+          <div class="lead-contact">🏢 OTT Platform · 200–500 staff · Singapore</div>
+          <div class="lead-tags"><span class="tag">OTT</span><span class="tag">Singapore</span><span class="tag">Streaming</span></div>
+          <div style="margin-bottom:8px;"><span class="lead-status-badge status-enriched">Enriched</span></div>
+          <div class="post-card-actions"><button class="btn btn-accent btn-sm">✨ Draft Outreach</button><button class="btn btn-outline btn-sm">+ Add to Sequence</button></div>
+        </div>
+        <div class="lead-card duplicate">
+          <div class="lead-score score-high">8</div>
+          <div class="duplicate-flag">⚠️ Possible duplicate — review</div>
+          <div class="lead-company">meWatch Singapore</div>
+          <div class="lead-contact">👤 David Lim · Content Director</div>
+          <div class="lead-tags"><span class="tag">Media</span><span class="tag">Singapore</span><span class="tag">Original IP</span></div>
+          <div style="margin-bottom:8px;"><span class="lead-status-badge status-enriched">Enriched</span></div>
+          <div class="post-card-actions"><button class="btn btn-accent btn-sm">✨ Draft Outreach</button><button class="btn btn-outline btn-sm">Review Duplicate</button></div>
+        </div>
+        <div class="lead-card">
+          <div class="lead-score score-high">8</div>
+          <div class="lead-company">Toggle.sg (Mediacorp)</div>
+          <div class="lead-contact">👤 Sarah Tan · VP Partnerships</div>
+          <div class="lead-tags"><span class="tag">OTT</span><span class="tag">Singapore</span><span class="tag">Local Content</span></div>
+          <div style="margin-bottom:8px;"><span class="lead-status-badge status-contacted">Contacted</span></div>
+          <div class="post-card-actions"><button class="btn btn-outline btn-sm">View Sequence</button><button class="copy-btn" style="border:1px solid var(--border);">📋 Copy DM</button></div>
+        </div>
+        <div class="lead-card">
+          <div class="lead-score score-mid">7</div>
+          <div class="lead-company">KKBox Taiwan</div>
+          <div class="lead-contact">🏢 Music Streaming · 100–200 staff · Taiwan</div>
+          <div class="lead-tags"><span class="tag">Streaming</span><span class="tag">Taiwan</span><span class="tag">Content</span></div>
+          <div style="margin-bottom:8px;"><span class="lead-status-badge status-found">Found</span></div>
+          <div class="post-card-actions"><button class="btn btn-accent btn-sm">✨ Draft Outreach</button><button class="btn btn-outline btn-sm">Enrich</button></div>
+        </div>
+        <div class="lead-card duplicate">
+          <div class="lead-score score-mid">6</div>
+          <div class="duplicate-flag">⚠️ Possible duplicate — review</div>
+          <div class="lead-company">Astro Malaysia</div>
+          <div class="lead-contact">🏢 Broadcasting · 500+ staff · Malaysia</div>
+          <div class="lead-tags"><span class="tag">Broadcast</span><span class="tag">Malaysia</span><span class="tag">OTT</span></div>
+          <div style="margin-bottom:8px;"><span class="lead-status-badge status-enriched">Enriched</span></div>
+          <div class="post-card-actions"><button class="btn btn-accent btn-sm">✨ Draft Outreach</button><button class="btn btn-outline btn-sm">Review Duplicate</button></div>
+        </div>
+        <div class="lead-card">
+          <div class="lead-score score-mid">6</div>
+          <div class="lead-company">iQIYI International</div>
+          <div class="lead-contact">👤 James Wong · Head of Partnerships</div>
+          <div class="lead-tags"><span class="tag">OTT</span><span class="tag">China</span><span class="tag">International</span></div>
+          <div style="margin-bottom:8px;"><span class="lead-status-badge status-replied">Replied ✓</span></div>
+          <div class="post-card-actions"><button class="btn btn-success btn-sm">📅 Book Meeting</button><button class="btn btn-outline btn-sm">View Thread</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OUTREACH -->
+    <div class="screen" id="screen-outreach">
+      <div class="outreach-layout">
+        <div class="lead-list">
+          <div style="padding:14px 16px;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Contacts (6)</div>
+          <div class="lead-list-item selected">
+            <div class="li-name">iQIYI International</div>
+            <div class="li-company">James Wong · Head of Partnerships</div>
+            <div class="li-status"><span class="lead-status-badge status-replied">Replied ✓</span></div>
+          </div>
+          <div class="lead-list-item">
+            <div class="li-name">Toggle.sg (Mediacorp)</div>
+            <div class="li-company">Sarah Tan · VP Partnerships</div>
+            <div class="li-status"><span class="lead-status-badge status-contacted">Contacted</span></div>
+          </div>
+          <div class="lead-list-item">
+            <div class="li-name">Viu Southeast Asia</div>
+            <div class="li-company">Platform Lead · Not named</div>
+            <div class="li-status"><span class="lead-status-badge status-enriched">Ready to Send</span></div>
+          </div>
+          <div class="lead-list-item">
+            <div class="li-name">meWatch Singapore</div>
+            <div class="li-company">David Lim · Content Director</div>
+            <div class="li-status"><span class="lead-status-badge status-found">Draft Ready</span></div>
+          </div>
+        </div>
+        <div class="message-panel">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+            <div><div style="font-size:16px;font-weight:700;">iQIYI International</div><div style="font-size:13px;color:var(--text-muted);">James Wong · Head of Partnerships · Slow Burn sequence — Day 3</div></div>
+            <span class="lead-status-badge status-replied" style="font-size:13px;padding:6px 12px;">✉️ Reply Received</span>
+          </div>
+          <div class="reply-badge">💬 James replied 3 hours ago — sequence paused. Review and respond before continuing.</div>
+          <div class="message-card">
+            <div class="message-card-header">
+              <div style="display:flex;align-items:center;gap:8px;"><span class="message-channel channel-email">📧 Email</span><span class="message-step">Day 0 — Initial outreach · Sent Apr 22</span></div>
+              <span style="font-size:12px;color:var(--success);font-weight:700;">✓ Sent</span>
+            </div>
+            <div class="message-body">Subject: Yeon Studios × iQIYI — Infrastructure partnership opportunity<br><br>Hi James,<br><br>Congratulations on iQIYI's expansion into SEA — the recent content push in Singapore has been impressive to watch.<br><br>I'm reaching out from Yeon Studios. We build the OTT infrastructure layer that content platforms use to scale distribution without sacrificing data ownership or monetisation control. Given iQIYI's growth trajectory in the region, I thought there might be a fit worth exploring.<br><br>Would a 20-minute call this week make sense?<br><br>Best,<br>Kevin</div>
+          </div>
+          <div class="message-card" style="border-color:var(--success);">
+            <div class="message-card-header">
+              <div style="display:flex;align-items:center;gap:8px;"><span class="message-channel channel-email">📧 Email</span><span class="message-step">Reply received · Apr 25</span></div>
+              <span style="font-size:12px;color:var(--success);font-weight:700;">✉️ Replied</span>
+            </div>
+            <div class="message-body" style="background:#f0fdf4;border-color:#86efac;">Hi Kevin,<br><br>Thanks for reaching out. We've actually been evaluating infrastructure partners for our SEA expansion. Your timing is good.<br><br>I can do Thursday at 3pm SGT. Does that work?<br><br>James</div>
+            <div style="display:flex;gap:8px;margin-top:10px;"><button class="btn btn-success btn-sm">📅 Book Meeting</button><button class="btn btn-accent btn-sm">✍️ Draft Reply</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEQUENCES -->
+    <div class="screen" id="screen-sequences">
+      <div class="section-title">Choose a Starting Template</div>
+      <div class="sequence-templates">
+        <div class="template-card selected">
+          <h4>🐢 Slow Burn</h4>
+          <p>Low pressure, relationship-first approach. Best for high-value targets.</p>
+          <div class="template-duration">5 touchpoints · 45 days</div>
+        </div>
+        <div class="template-card">
+          <h4>⚡ Multi-Touch Blitz</h4>
+          <p>Fast close, high volume. Best for shorter sales cycles.</p>
+          <div class="template-duration">5 touchpoints · 14 days</div>
+        </div>
+        <div class="template-card">
+          <h4>🎨 Content Bridge</h4>
+          <p>Softest touch, brand-building first. Best for long-term relationships.</p>
+          <div class="template-duration">6 touchpoints · 35 days</div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div class="section-title" style="margin:0;">Sequence Steps — Slow Burn</div>
+        <div style="display:flex;gap:8px;"><button class="btn btn-outline btn-sm">💾 Save as Template</button><button class="btn btn-accent btn-sm">+ Add Step</button></div>
+      </div>
+      <div class="sequence-steps">
+        <div class="sequence-step-row">
+          <div class="step-num">1</div>
+          <div class="step-details">
+            <select><option>📧 Email</option><option>💼 LinkedIn DM</option><option>🔗 LinkedIn Connect</option><option>📋 Manual Task</option></select>
+            <select><option>Day 0</option><option>Day 1</option><option>Day 3</option></select>
+            <select><option>Warm intro</option><option>Neutral</option><option>Direct pitch</option><option>Value-add</option><option>Closing</option></select>
+            <select><option>Always send</option><option>Only if no reply</option></select>
+          </div>
+          <button style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:16px;">✕</button>
+        </div>
+        <div class="step-connector">↓</div>
+        <div class="sequence-step-row">
+          <div class="step-num">2</div>
+          <div class="step-details">
+            <select><option>📧 Email</option><option selected>💼 LinkedIn DM</option></select>
+            <select><option>Day 0</option><option>Day 1</option><option selected>Day 3</option></select>
+            <select><option>Warm intro</option><option selected>Neutral</option></select>
+            <select><option>Always send</option><option selected>Only if no reply</option></select>
+          </div>
+          <button style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:16px;">✕</button>
+        </div>
+        <div class="step-connector">↓</div>
+        <div class="sequence-step-row">
+          <div class="step-num">3</div>
+          <div class="step-details">
+            <select><option selected>📧 Email</option></select>
+            <select><option selected>Day 7</option></select>
+            <select><option selected>Neutral</option><option>Direct pitch</option></select>
+            <select><option>Always send</option><option selected>Only if no reply</option></select>
+          </div>
+          <button style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:16px;">✕</button>
+        </div>
+        <div class="step-connector">↓</div>
+        <div class="sequence-step-row">
+          <div class="step-num">4</div>
+          <div class="step-details">
+            <select><option selected>📧 Email</option></select>
+            <select><option selected>Day 21</option></select>
+            <select><option selected>Value-add</option></select>
+            <select><option>Always send</option><option selected>Only if no reply</option></select>
+          </div>
+          <button style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:16px;">✕</button>
+        </div>
+        <div class="step-connector">↓</div>
+        <div class="sequence-step-row">
+          <div class="step-num">5</div>
+          <div class="step-details">
+            <select><option selected>📧 Email</option></select>
+            <select><option selected>Day 45</option></select>
+            <select><option selected>Closing</option></select>
+            <select><option>Always send</option><option selected>Only if no reply</option></select>
+          </div>
+          <button style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:16px;">✕</button>
+        </div>
+        <div class="add-step-btn">+ Add Step</div>
+      </div>
+      <div class="divider"></div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="font-size:14px;font-weight:600;">If no reply after final step:</span>
+        <select style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;outline:none;"><option>Mark as Dormant</option><option>Mark as Cold</option><option>Mark as Nurturing</option><option>Re-enter sequence in 90 days</option></select>
+      </div>
+    </div>
+
+    <!-- BRANDS -->
+    <div class="screen" id="screen-brands">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <div class="section-title" style="margin:0;">Active Brands</div>
+        <button class="btn btn-accent">+ Add Brand</button>
+      </div>
+      <div class="brands-grid">
+        <div class="brand-card">
+          <div class="brand-card-header">
+            <div style="display:flex;align-items:center;gap:12px;"><div class="brand-icon yeon">🎬</div><div><div class="brand-name">Yeon Studios</div><div class="brand-industry">OTT Infrastructure & Media-Tech</div></div></div>
+            <div style="display:flex;gap:6px;"><button class="btn btn-outline btn-sm">✎ Edit</button><button class="btn btn-outline btn-sm" style="color:var(--danger);border-color:var(--danger);">Archive</button></div>
+          </div>
+          <div class="brand-stats">
+            <div class="brand-stat"><div class="brand-stat-num">5</div><div class="brand-stat-label">Platforms</div></div>
+            <div class="brand-stat"><div class="brand-stat-num">48</div><div class="brand-stat-label">Posts</div></div>
+            <div class="brand-stat"><div class="brand-stat-num">18</div><div class="brand-stat-label">Leads</div></div>
+          </div>
+          <div style="font-size:12px;color:var(--text-muted);">Voice: Strategic · Visionary · Authoritative</div>
+        </div>
+        <div class="brand-card">
+          <div class="brand-card-header">
+            <div style="display:flex;align-items:center;gap:12px;"><div class="brand-icon belive">🌟</div><div><div class="brand-name">BeLive Studios</div><div class="brand-industry">Content Production & IP Creation</div></div></div>
+            <div style="display:flex;gap:6px;"><button class="btn btn-outline btn-sm">✎ Edit</button><button class="btn btn-outline btn-sm" style="color:var(--danger);border-color:var(--danger);">Archive</button></div>
+          </div>
+          <div class="brand-stats">
+            <div class="brand-stat"><div class="brand-stat-num">5</div><div class="brand-stat-label">Platforms</div></div>
+            <div class="brand-stat"><div class="brand-stat-num">36</div><div class="brand-stat-label">Posts</div></div>
+            <div class="brand-stat"><div class="brand-stat-num">16</div><div class="brand-stat-label">Leads</div></div>
+          </div>
+          <div style="font-size:12px;color:var(--text-muted);">Voice: Cinematic · Bold · Culturally Sharp</div>
+        </div>
+        <div class="brand-card" style="border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;min-height:180px;" onclick="">
+          <div style="text-align:center;color:var(--text-muted);">
+            <div style="font-size:32px;margin-bottom:8px;">+</div>
+            <div style="font-size:14px;font-weight:600;">Add New Brand</div>
+            <div style="font-size:12px;margin-top:4px;">Click to set up a new brand profile</div>
+          </div>
+        </div>
+      </div>
+      <div class="archived-section">
+        <h3>Archived Brands</h3>
+        <div class="brands-grid">
+          <div class="brand-card archived">
+            <div class="brand-card-header">
+              <div style="display:flex;align-items:center;gap:12px;"><div class="brand-icon" style="background:#f1f5f9;">📦</div><div><div class="brand-name">Demo Brand</div><div class="brand-industry">Archived Apr 10, 2026</div></div></div>
+              <button class="btn btn-outline btn-sm">Restore</button>
+            </div>
+            <div style="font-size:12px;color:var(--text-muted);">All records retained. Click Restore to reactivate.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="screen" id="screen-settings">
+      <div class="settings-tabs">
+        <div class="settings-tab active" onclick="switchTab(this,'tab-users')">Users & Roles</div>
+        <div class="settings-tab" onclick="switchTab(this,'tab-theme')">Appearance</div>
+        <div class="settings-tab" onclick="switchTab(this,'tab-sequence')">Default Sequence</div>
+        <div class="settings-tab" onclick="switchTab(this,'tab-security')">Security</div>
+      </div>
+      <div id="tab-users">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:16px;"><button class="btn btn-accent">+ Invite User</button></div>
+        <div class="card">
+          <table class="user-table">
+            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Brand Access</th><th>Last Login</th><th></th></tr></thead>
+            <tbody>
+              <tr><td><div style="display:flex;align-items:center;gap:8px;"><div class="user-avatar" style="width:28px;height:28px;font-size:11px;">K</div>Kevin Chng</div></td><td style="color:var(--text-muted);">kevin@buildlab33.com</td><td><select class="role-select"><option selected>Super Admin</option><option>Admin</option><option>User</option><option>Guest</option></select></td><td><span class="tag">All Brands</span></td><td style="color:var(--text-muted);">Today, 9:41 AM</td><td><button class="btn btn-outline btn-sm">Edit</button></td></tr>
+              <tr><td><div style="display:flex;align-items:center;gap:8px;"><div class="user-avatar" style="width:28px;height:28px;font-size:11px;background:#8b5cf6;">S</div>Sarah Yeon</div></td><td style="color:var(--text-muted);">sarah@yeonstudios.com</td><td><select class="role-select"><option>Super Admin</option><option selected>Admin</option><option>User</option><option>Guest</option></select></td><td><span class="tag">Yeon Studios</span></td><td style="color:var(--text-muted);">Apr 24, 2:15 PM</td><td><button class="btn btn-outline btn-sm">Edit</button></td></tr>
+              <tr><td><div style="display:flex;align-items:center;gap:8px;"><div class="user-avatar" style="width:28px;height:28px;font-size:11px;background:#ec4899;">M</div>Marcus BeLive</div></td><td style="color:var(--text-muted);">marcus@belivestudios.com</td><td><select class="role-select"><option>Super Admin</option><option>Admin</option><option selected>User</option><option>Guest</option></select></td><td><span class="tag">BeLive Studios</span></td><td style="color:var(--text-muted);">Apr 23, 11:00 AM</td><td><button class="btn btn-outline btn-sm">Edit</button></td></tr>
+              <tr><td><div style="display:flex;align-items:center;gap:8px;"><div class="user-avatar" style="width:28px;height:28px;font-size:11px;background:#64748b;">G</div>Guest Viewer</div></td><td style="color:var(--text-muted);">guest@yeonstudios.com</td><td><select class="role-select"><option>Super Admin</option><option>Admin</option><option>User</option><option selected>Guest</option></select></td><td><span class="tag">Yeon Studios</span></td><td style="color:var(--text-muted);">Apr 20, 3:30 PM</td><td><button class="btn btn-outline btn-sm">Edit</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div id="tab-theme" style="display:none;">
+        <div class="section-title">Choose Your Theme</div>
+        <div class="theme-grid">
+          <div class="theme-swatch selected" onclick="selectTheme(this,'#0f172a','#3b82f6','#f8fafc')">
+            <div class="theme-preview"><div class="theme-sidebar-preview" style="background:#0f172a;"></div><div class="theme-main-preview" style="background:#f8fafc;border-top:3px solid #3b82f6;"></div></div>
+            <div class="theme-name">1. Midnight</div>
+          </div>
+          <div class="theme-swatch" onclick="selectTheme(this,'#1e293b','#94a3b8','#f1f5f9')">
+            <div class="theme-preview"><div class="theme-sidebar-preview" style="background:#1e293b;"></div><div class="theme-main-preview" style="background:#f1f5f9;border-top:3px solid #94a3b8;"></div></div>
+            <div class="theme-name">2. Slate</div>
+          </div>
+          <div class="theme-swatch" onclick="selectTheme(this,'#0c0c0c','#f59e0b','#ffffff')">
+            <div class="theme-preview"><div class="theme-sidebar-preview" style="background:#0c0c0c;"></div><div class="theme-main-preview" style="background:#ffffff;border-top:3px solid #f59e0b;"></div></div>
+            <div class="theme-name">3. Obsidian</div>
+          </div>
+          <div class="theme-swatch" onclick="selectTheme(this,'#14532d','#4ade80','#f0fdf4')">
+            <div class="theme-preview"><div class="theme-sidebar-preview" style="background:#14532d;"></div><div class="theme-main-preview" style="background:#f0fdf4;border-top:3px solid #4ade80;"></div></div>
+            <div class="theme-name">4. Forest</div>
+          </div>
+          <div class="theme-swatch" onclick="selectTheme(this,'#7f1d1d','#fca5a5','#fff1f2')">
+            <div class="theme-preview"><div class="theme-sidebar-preview" style="background:#7f1d1d;"></div><div class="theme-main-preview" style="background:#fff1f2;border-top:3px solid #fca5a5;"></div></div>
+            <div class="theme-name">5. Crimson</div>
+          </div>
+          <div class="theme-swatch" onclick="selectTheme(this,'#e2e8f0','#0ea5e9','#f8fafc')">
+            <div class="theme-preview"><div class="theme-sidebar-preview" style="background:#e2e8f0;"></div><div class="theme-main-preview" style="background:#f8fafc;border-top:3px solid #0ea5e9;"></div></div>
+            <div class="theme-name">6. Arctic</div>
+          </div>
+          <div class="theme-swatch" onclick="selectTheme(this,'#78716c','#ea580c','#fafaf9')">
+            <div class="theme-preview"><div class="theme-sidebar-preview" style="background:#d6d3d1;"></div><div class="theme-main-preview" style="background:#fafaf9;border-top:3px solid #ea580c;"></div></div>
+            <div class="theme-name">7. Sand</div>
+          </div>
+          <div class="theme-swatch" onclick="selectTheme(this,'#4c1d95','#c4b5fd','#faf5ff')">
+            <div class="theme-preview"><div class="theme-sidebar-preview" style="background:#4c1d95;"></div><div class="theme-main-preview" style="background:#faf5ff;border-top:3px solid #c4b5fd;"></div></div>
+            <div class="theme-name">8. Violet</div>
+          </div>
+          <div class="theme-swatch" onclick="selectTheme(this,'#000000','#ffffff','#ffffff')">
+            <div class="theme-preview"><div class="theme-sidebar-preview" style="background:#000;"></div><div class="theme-main-preview" style="background:#fff;border-top:3px solid #000;"></div></div>
+            <div class="theme-name">9. Mono</div>
+          </div>
+          <div class="theme-swatch" onclick="selectTheme(this,'#1e3a5f','#3b82f6','#f0f7ff')">
+            <div class="theme-preview"><div class="theme-sidebar-preview" style="background:linear-gradient(135deg,#1e3a5f,#be185d);"></div><div class="theme-main-preview" style="background:#f0f7ff;border-top:3px solid #3b82f6;"></div></div>
+            <div class="theme-name">10. Brand</div>
+          </div>
+        </div>
+      </div>
+      <div id="tab-sequence" style="display:none;">
+        <div class="card"><div class="card-body">
+          <div class="form-row">
+            <div class="form-field"><label>Default Sequence for New Leads</label><select><option selected>🐢 Slow Burn (45 days)</option><option>⚡ Multi-Touch Blitz (14 days)</option><option>🎨 Content Bridge (35 days)</option></select></div>
+            <div class="form-field"><label>Clash Detection Window</label><select><option>15 minutes</option><option selected>30 minutes</option><option>1 hour</option><option>2 hours</option></select></div>
+          </div>
+          <div class="form-row">
+            <div class="form-field"><label>Notify on Lead Reply</label><select><option selected>Immediately (email + in-app)</option><option>In-app only</option><option>Daily digest</option></select></div>
+            <div class="form-field"><label>Auto-pause Sequence on Reply</label><select><option selected>Yes — pause and notify</option><option>No — continue sequence</option></select></div>
+          </div>
+          <button class="btn btn-accent">Save Settings</button>
+        </div></div>
+      </div>
+      <div id="tab-security" style="display:none;">
+        <div class="card"><div class="card-body">
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px;background:#f8fafc;border-radius:8px;border:1px solid var(--border);"><div><div style="font-weight:700;">Password Hashing</div><div style="font-size:13px;color:var(--text-muted);">bcrypt — industry standard</div></div><span style="color:var(--success);font-weight:700;">✓ Active</span></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px;background:#f8fafc;border-radius:8px;border:1px solid var(--border);"><div><div style="font-weight:700;">JWT Token Rotation</div><div style="font-size:13px;color:var(--text-muted);">Tokens expire every 24h, refresh tokens rotated on use</div></div><span style="color:var(--success);font-weight:700;">✓ Active</span></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px;background:#f8fafc;border-radius:8px;border:1px solid var(--border);"><div><div style="font-weight:700;">Login Rate Limiting</div><div style="font-size:13px;color:var(--text-muted);">Max 5 attempts per 15 minutes per IP</div></div><span style="color:var(--success);font-weight:700;">✓ Active</span></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px;background:#f8fafc;border-radius:8px;border:1px solid var(--border);"><div><div style="font-weight:700;">HTTPS Enforcement</div><div style="font-size:13px;color:var(--text-muted);">All traffic encrypted in transit</div></div><span style="color:var(--success);font-weight:700;">✓ Active</span></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px;background:#f8fafc;border-radius:8px;border:1px solid var(--border);"><div><div style="font-weight:700;">Input Sanitisation</div><div style="font-size:13px;color:var(--text-muted);">SQL injection and XSS prevention on all inputs</div></div><span style="color:var(--success);font-weight:700;">✓ Active</span></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px;background:#f8fafc;border-radius:8px;border:1px solid var(--border);"><div><div style="font-weight:700;">Audit Log</div><div style="font-size:13px;color:var(--text-muted);">Read-only. Every action timestamped. No role can delete.</div></div><span style="color:var(--success);font-weight:700;">✓ Active</span></div>
+          </div>
+        </div></div>
+      </div>
+    </div>
+
+    <!-- AUDIT LOG -->
+    <div class="screen" id="screen-logs">
+      <div class="card">
+        <div class="card-header"><h3>Audit Log</h3><span style="font-size:13px;color:var(--text-muted);">Read-only — no entries can be deleted</span></div>
+        <div class="card-body" style="padding:0;">
+          <table class="log-table" style="width:100%;">
+            <thead><tr><th>Timestamp</th><th>User</th><th>Action</th><th>Detail</th><th>Brand</th></tr></thead>
+            <tbody>
+              <tr><td style="color:var(--text-muted);">Apr 24, 09:41 AM</td><td>Kevin Chng</td><td class="log-action login">Login</td><td>Signed in as Super Admin</td><td>—</td></tr>
+              <tr><td style="color:var(--text-muted);">Apr 24, 09:45 AM</td><td>Kevin Chng</td><td class="log-action post">Post Approved</td><td>LinkedIn post approved for scheduling</td><td>Yeon Studios</td></tr>
+              <tr><td style="color:var(--text-muted);">Apr 24, 10:12 AM</td><td>Kevin Chng</td><td class="log-action outreach">Outreach Sent</td><td>Email sent to iQIYI — James Wong</td><td>Yeon Studios</td></tr>
+              <tr><td style="color:var(--text-muted);">Apr 23, 02:15 PM</td><td>Sarah Yeon</td><td class="log-action login">Login</td><td>Signed in as Admin</td><td>Yeon Studios</td></tr>
+              <tr><td style="color:var(--text-muted);">Apr 23, 02:22 PM</td><td>Sarah Yeon</td><td class="log-action post">Post Approved</td><td>Instagram post approved — BeLive Studios</td><td>BeLive Studios</td></tr>
+              <tr><td style="color:var(--text-muted);">Apr 22, 11:00 AM</td><td>Kevin Chng</td><td class="log-action brand">Brand Updated</td><td>Brand guide updated — voice keywords revised</td><td>BeLive Studios</td></tr>
+              <tr><td style="color:var(--text-muted);">Apr 21, 09:00 AM</td><td>Kevin Chng</td><td class="log-action brand">Brand Created</td><td>New brand profile created</td><td>Yeon Studios</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let currentRole = 'superadmin';
+
+function doLogin() {
+  currentRole = document.getElementById('role-select').value;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('sidebar').style.display = 'flex';
+  document.getElementById('main').style.display = 'flex';
+  const roleLabels = { superadmin: 'Super Admin', admin: 'Admin', user: 'User', guest: 'Guest' };
+  document.getElementById('user-role-label').textContent = roleLabels[currentRole];
+  const adminItems = document.querySelectorAll('.superadmin-only');
+  adminItems.forEach(el => { el.style.display = (currentRole === 'superadmin') ? 'flex' : 'none'; });
+  showScreen('dashboard', document.querySelector('.nav-item'));
+}
+
+function logout() {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('sidebar').style.display = 'none';
+  document.getElementById('main').style.display = 'none';
+}
+
+function showScreen(name, el) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const screen = document.getElementById('screen-' + name);
+  if (screen) screen.classList.add('active');
+  if (el) el.classList.add('active');
+  const titles = { dashboard:'Dashboard', generate:'Generate Posts', posts:'Posts', calendar:'Calendar', news:'Industry News', leads:'Lead Generation', outreach:'Outreach', sequences:'Sequence Builder', brands:'Brand Management', settings:'Settings', logs:'Audit Log' };
+  document.getElementById('page-title').textContent = titles[name] || name;
+  const actions = { generate: '<button class="btn btn-outline" onclick="resetWizard()">↺ Reset</button>', posts: '<button class="btn btn-accent" onclick="showScreen(\'generate\',null)">+ Generate New</button>', leads: '', news: '<button class="btn btn-outline btn-sm">↺ Refresh News</button>' };
+  document.getElementById('topbar-actions').innerHTML = actions[name] || '';
+}
+
+function showResults() {
+  document.getElementById('generate-results').style.display = 'block';
+  document.querySelector('.wizard-step:nth-child(9)').classList.add('active');
+}
+
+function resetWizard() {
+  document.getElementById('generate-results').style.display = 'none';
+}
+
+function copyText(btn) {
+  const card = btn.closest('.result-card, .message-card');
+  const text = card.querySelector('.result-card-text, .message-body')?.innerText || '';
+  navigator.clipboard.writeText(text).catch(() => {});
+  const orig = btn.innerHTML;
+  btn.innerHTML = '✅ Copied!';
+  btn.style.color = 'var(--success)';
+  btn.style.borderColor = 'var(--success)';
+  setTimeout(() => { btn.innerHTML = orig; btn.style.color = ''; btn.style.borderColor = ''; }, 2000);
+}
+
+function showClashModal() { document.getElementById('clash-modal').style.display = 'flex'; }
+function closeModal() { document.getElementById('clash-modal').style.display = 'none'; }
+
+function switchTab(el, tabId) {
+  document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  const tabs = ['tab-users','tab-theme','tab-sequence','tab-security'];
+  tabs.forEach(t => { const el = document.getElementById(t); if (el) el.style.display = 'none'; });
+  const target = document.getElementById(tabId);
+  if (target) target.style.display = 'block';
+}
+
+function selectTheme(el, sidebar, accent, bg) {
+  document.querySelectorAll('.theme-swatch').forEach(s => s.classList.remove('selected'));
+  el.classList.add('selected');
+  document.documentElement.style.setProperty('--sidebar-bg', sidebar);
+  document.documentElement.style.setProperty('--accent', accent);
+  document.documentElement.style.setProperty('--accent-hover', accent);
+  document.documentElement.style.setProperty('--bg', bg);
+}
+
+document.getElementById('clash-modal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+
+document.querySelectorAll('.platform-option').forEach(opt => {
+  opt.addEventListener('click', () => opt.classList.toggle('selected'));
+});
+</script>
+</body>
+</html>
