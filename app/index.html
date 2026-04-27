@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<meta name="theme-color" content="#0f172a">
+<title>COP Platform — Yeon Studios & BeLive Studios</title>
+<style>
+  :root {
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --text: #0f172a;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --accent: #3b82f6;
+    --accent-hover: #2563eb;
+    --success: #16a34a;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --yeon: #1e3a8a;
+    --belive: #be185d;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; min-height: 100vh; }
+  button, input, select, textarea { font-family: inherit; font-size: 16px; }
+  button { cursor: pointer; touch-action: manipulation; -webkit-appearance: none; appearance: none; border: none; background: none; }
+
+  /* HEADER */
+  .header { background: #0f172a; color: #fff; padding: 14px 20px; position: sticky; top: 0; z-index: 50; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .header-inner { max-width: 1400px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .header-brand { display: flex; align-items: center; gap: 10px; }
+  .logo { width: 36px; height: 36px; background: var(--accent); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+  .header-title { font-size: 16px; font-weight: 700; }
+  .header-sub { font-size: 11px; color: #94a3b8; }
+  .brand-pill { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 999px; padding: 6px 4px 6px 14px; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
+  .brand-pill select { background: transparent; color: #fff; border: none; outline: none; font-weight: 600; padding: 4px 24px 4px 0; cursor: pointer; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3'%3e%3cpath d='M6 9l6 6 6-6'/%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 6px center; }
+  .brand-pill select option { color: #0f172a; }
+
+  /* TABS (mobile nav) */
+  .tabs { display: none; background: #fff; border-bottom: 1px solid var(--border); position: sticky; top: 64px; z-index: 40; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tabs button { padding: 12px 16px; font-size: 13px; font-weight: 600; color: var(--muted); border-bottom: 2px solid transparent; white-space: nowrap; flex-shrink: 0; }
+  .tabs button.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* LAYOUT */
+  .layout { max-width: 1400px; margin: 0 auto; padding: 20px; display: grid; grid-template-columns: 320px 1fr 340px; gap: 20px; }
+  @media (max-width: 1100px) {
+    .layout { grid-template-columns: 280px 1fr; }
+    .col-right { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  }
+  @media (max-width: 760px) {
+    .layout { grid-template-columns: 1fr; padding: 14px; gap: 14px; }
+    .col-right { grid-template-columns: 1fr; }
+    .tabs { display: flex; }
+    .col-left, .col-mid, .col-right > * { display: none; }
+    .col-left.tab-active, .col-mid.tab-active, .col-right.tab-active > * { display: block; }
+    .col-right.tab-active { display: block; }
+  }
+
+  /* CARDS */
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 16px; }
+  .card:last-child { margin-bottom: 0; }
+  .card-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; }
+  .card-title-main { font-size: 15px; font-weight: 700; color: var(--text); text-transform: none; letter-spacing: 0; margin-bottom: 4px; }
+  .card-sub { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+
+  /* FORM */
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
+  .field input, .field select, .field textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); color: var(--text); outline: none; transition: border-color 0.15s; }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
+  .field textarea { resize: vertical; min-height: 70px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* BUTTONS */
+  .btn { padding: 11px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; transition: all 0.15s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 42px; }
+  .btn-primary { background: var(--accent); color: #fff; width: 100%; }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-primary:disabled { background: #cbd5e1; cursor: not-allowed; }
+  .btn-success { background: var(--success); color: #fff; }
+  .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .btn-outline:hover { background: var(--bg); }
+  .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--border); }
+  .btn-danger:hover { background: #fef2f2; border-color: var(--danger); }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn-row .btn { flex: 1; min-width: 110px; }
+
+  /* PREVIEW */
+  .preview-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 10px; flex-wrap: wrap; }
+  .preview-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .badge { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; }
+  .badge-yeon { background: #dbeafe; color: var(--yeon); }
+  .badge-belive { background: #fce7f3; color: var(--belive); }
+  .badge-platform { background: #f1f5f9; color: var(--text); }
+  .badge-status { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; }
+  .status-empty { background: #f1f5f9; color: var(--muted); }
+  .status-ready { background: #dbeafe; color: var(--accent); }
+  .status-edited { background: #fef9c3; color: #92400e; }
+  .status-approved { background: #dcfce7; color: var(--success); }
+  .status-scheduled { background: #f3e8ff; color: #7c3aed; }
+  .preview-textarea { width: 100%; min-height: 220px; padding: 16px; border: 2px solid var(--border); border-radius: 10px; font-size: 15px; line-height: 1.7; outline: none; resize: vertical; background: #fff; transition: border-color 0.15s; }
+  .preview-textarea:focus { border-color: var(--accent); }
+  .preview-meta-bar { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; font-size: 12px; color: var(--muted); flex-wrap: wrap; gap: 8px; }
+  .schedule-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+
+  /* CALENDAR */
+  .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .cal-head { text-align: center; font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; padding: 6px 0; }
+  .cal-cell { background: #f8fafc; border: 1px solid var(--border); border-radius: 6px; padding: 6px 4px; min-height: 56px; font-size: 11px; cursor: pointer; transition: all 0.15s; }
+  .cal-cell:hover { background: #eff6ff; border-color: var(--accent); }
+  .cal-cell.today { background: #eff6ff; border-color: var(--accent); font-weight: 700; }
+  .cal-cell.empty { background: transparent; border-color: transparent; cursor: default; }
+  .cal-num { font-size: 11px; font-weight: 700; margin-bottom: 2px; }
+  .cal-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin: 1px; }
+  .dot-yeon { background: var(--yeon); }
+  .dot-belive { background: var(--belive); }
+  .cal-legend { display: flex; gap: 12px; margin-top: 10px; font-size: 11px; color: var(--muted); }
+
+  /* OUTREACH */
+  .outreach-list { display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; }
+  .outreach-item { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+  .outreach-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+  .outreach-name { font-size: 13px; font-weight: 700; }
+  .outreach-meta { font-size: 11px; color: var(--muted); }
+  .outreach-status { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; }
+  .or-not-contacted { background: #f1f5f9; color: var(--muted); }
+  .or-contacted { background: #fef9c3; color: #92400e; }
+  .or-replied { background: #f3e8ff; color: #7c3aed; }
+  .or-meeting { background: #dcfce7; color: var(--success); }
+
+  /* SNAPSHOT */
+  .snapshot-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .snap-cell { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 12px; text-align: center; }
+  .snap-num { font-size: 24px; font-weight: 800; color: var(--accent); }
+  .snap-label { font-size: 11px; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .snap-brand { font-size: 13px; font-weight: 700; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+  /* DRAFTS LIST */
+  .drafts-list { display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; }
+  .draft-item { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; cursor: pointer; transition: all 0.15s; }
+  .draft-item:hover { background: #eff6ff; border-color: var(--accent); }
+  .draft-meta { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
+  .draft-snippet { font-size: 12px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(120px); background: #0f172a; color: #fff; padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; z-index: 100; transition: transform 0.3s; box-shadow: 0 6px 20px rgba(0,0,0,0.2); }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.success { background: var(--success); }
+  .toast.error { background: var(--danger); }
+
+  /* MISC */
+  .empty { text-align: center; padding: 30px 16px; color: var(--muted); font-size: 13px; }
+  .helper { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .divider { height: 1px; background: var(--border); margin: 14px 0; }
+  .reset-btn { background: transparent; color: var(--muted); font-size: 12px; padding: 4px 8px; }
+  .reset-btn:hover { color: var(--danger); }
+
+  /* Smooth scroll inside containers */
+  textarea, .outreach-list, .drafts-list { -webkit-overflow-scrolling: touch; }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <div class="header-brand">
+      <div class="logo">🚀</div>
+      <div>
+        <div class="header-title">COP Platform</div>
+        <div class="header-sub">Content & Outreach · BuildLab33</div>
+      </div>
+    </div>
+    <div class="brand-pill">
+      <span id="brand-emoji">🎬</span>
+      <select id="brand-select" aria-label="Active brand">
+        <option value="yeon">Yeon Studios</option>
+        <option value="belive">BeLive Studios</option>
+      </select>
+    </div>
+  </div>
+</header>
+
+<nav class="tabs" id="mobile-tabs" role="tablist">
+  <button data-tab="left" class="active" type="button">📝 Create</button>
+  <button data-tab="mid" type="button">👁 Preview</button>
+  <button data-tab="right" type="button">📊 Tracker</button>
+</nav>
+
+<main class="layout">
+
+  <!-- LEFT: INPUTS -->
+  <section class="col-left tab-active">
+    <div class="card">
+      <div class="card-title-main">Generate Draft</div>
+      <div class="card-sub">All fields shape the output. No randomness.</div>
+
+      <div class="field">
+        <label for="f-platform">Platform</label>
+        <select id="f-platform">
+          <option value="LinkedIn">LinkedIn</option>
+          <option value="Instagram">Instagram</option>
+          <option value="TikTok">TikTok</option>
+          <option value="YouTube">YouTube</option>
+          <option value="Facebook">Facebook</option>
+          <option value="X">X (Twitter)</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="f-format">Content Format</label>
+        <select id="f-format">
+          <option value="Thought Leadership">Thought Leadership</option>
+          <option value="Case Study">Case Study</option>
+          <option value="Behind-the-Scenes">Behind-the-Scenes</option>
+          <option value="Client Win">Client Win</option>
+          <option value="Event Recap">Event Recap</option>
+          <option value="Promo">Promo</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="f-goal">Campaign Goal</label>
+        <select id="f-goal">
+          <option value="Build authority">Build authority</option>
+          <option value="Drive inbound leads">Drive inbound leads</option>
+          <option value="Announce partnership">Announce partnership</option>
+          <option value="Showcase capability">Showcase capability</option>
+          <option value="Recruit collaborators">Recruit collaborators</option>
+          <option value="Promote event">Promote event</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="f-audience">Audience</label>
+        <select id="f-audience">
+          <option value="OTT operators & platform leads">OTT operators & platform leads</option>
+          <option value="Brand managers & agency leads">Brand managers & agency leads</option>
+          <option value="Media-tech journalists">Media-tech journalists</option>
+          <option value="Creative collaborators & co-producers">Creative collaborators & co-producers</option>
+          <option value="Industry decision makers in SEA">Industry decision makers in SEA</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="f-angle">Growth Angle</label>
+        <textarea id="f-angle" placeholder="e.g. Singapore OTT market grew 23% in Q1 2026 — opportunity to position Yeon as the infrastructure layer">Singapore OTT market is accelerating — platforms need infrastructure that scales without giving up data ownership.</textarea>
+        <div class="helper">One specific insight, stat, or angle this post should pivot on.</div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="f-date">Publish Date <span style="color:var(--muted);text-transform:none;font-weight:400;">(optional)</span></label>
+          <input type="date" id="f-date">
+        </div>
+        <div class="field">
+          <label for="f-time">Publish Time <span style="color:var(--muted);text-transform:none;font-weight:400;">(optional)</span></label>
+          <input type="time" id="f-time">
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="btn-generate" type="button">✨ Generate Post</button>
+      <button class="reset-btn" id="btn-reset" type="button" style="margin-top:8px;width:100%;">Reset all fields</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span>Saved Drafts</span>
+        <span id="drafts-count" style="color:var(--muted);font-weight:400;">0</span>
+      </div>
+      <div class="drafts-list" id="drafts-list">
+        <div class="empty">No drafts yet. Generate your first post above.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CENTER: PREVIEW -->
+  <section class="col-mid">
+    <div class="card">
+      <div class="preview-header">
+        <div class="preview-meta">
+          <span class="badge" id="preview-brand">Yeon Studios</span>
+          <span class="badge badge-platform" id="preview-platform">LinkedIn</span>
+          <span class="badge badge-platform" id="preview-format">Thought Leadership</span>
+        </div>
+        <span class="badge-status status-empty" id="preview-status">No draft yet</span>
+      </div>
+
+      <textarea class="preview-textarea" id="draft-text" placeholder="Generated draft will appear here. Fill in the fields on the left and tap Generate Post to create a draft. You can edit anything before approving."></textarea>
+
+      <div class="preview-meta-bar">
+        <span><span id="char-count">0</span> characters · <span id="word-count">0</span> words</span>
+        <button class="btn btn-outline" id="btn-copy" type="button" style="padding:6px 12px;min-height:auto;font-size:12px;">📋 Copy</button>
+      </div>
+
+      <div class="schedule-row">
+        <div class="field" style="margin:0;">
+          <label for="approve-date">Schedule Date</label>
+          <input type="date" id="approve-date">
+        </div>
+        <div class="field" style="margin:0;">
+          <label for="approve-time">Schedule Time</label>
+          <input type="time" id="approve-time">
+        </div>
+      </div>
+
+      <div class="btn-row" style="margin-top:14px;">
+        <button class="btn btn-outline" id="btn-save-draft" type="button">💾 Save as Draft</button>
+        <button class="btn btn-success" id="btn-approve" type="button">✓ Approve & Schedule</button>
+      </div>
+      <button class="btn btn-danger" id="btn-discard" type="button" style="margin-top:8px;width:100%;">Discard</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title-main">Weekly Calendar</div>
+      <div class="card-sub" id="cal-month">Loading...</div>
+      <div class="calendar-grid" id="calendar"></div>
+      <div class="cal-legend">
+        <span><span class="cal-dot dot-yeon"></span> Yeon Studios</span>
+        <span><span class="cal-dot dot-belive"></span> BeLive Studios</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- RIGHT: TRACKER -->
+  <section class="col-right">
+    <div class="card">
+      <div class="card-title-main">Campaign Snapshot</div>
+      <div class="card-sub">Drafts and scheduled posts across both brands</div>
+      <div class="snapshot-grid">
+        <div>
+          <div class="snap-brand" style="color:var(--yeon);">🎬 Yeon Studios</div>
+          <div class="snapshot-grid">
+            <div class="snap-cell"><div class="snap-num" id="snap-yeon-drafts">0</div><div class="snap-label">Drafts</div></div>
+            <div class="snap-cell"><div class="snap-num" id="snap-yeon-scheduled">0</div><div class="snap-label">Scheduled</div></div>
+          </div>
+        </div>
+        <div>
+          <div class="snap-brand" style="color:var(--belive);">🌟 BeLive Studios</div>
+          <div class="snapshot-grid">
+            <div class="snap-cell"><div class="snap-num" id="snap-belive-drafts">0</div><div class="snap-label">Drafts</div></div>
+            <div class="snap-cell"><div class="snap-num" id="snap-belive-scheduled">0</div><div class="snap-label">Scheduled</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span>Outreach Tracker</span>
+        <button class="btn btn-outline" id="btn-add-outreach" type="button" style="padding:4px 10px;min-height:auto;font-size:12px;">+ Add</button>
+      </div>
+      <div class="outreach-list" id="outreach-list"></div>
+    </div>
+  </section>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   COP PLATFORM — MVP
+   Single-file responsive web app. Uses localStorage for state.
+   Generation is deterministic — built from structured inputs.
+   ============================================================ */
+
+const STATE_KEY = 'cop-platform-state-v1';
+const PLATFORM_LIMITS = {
+  LinkedIn:   { maxWords: 200, hashtags: false, emojis: 'subtle' },
+  Instagram:  { maxWords: 250, hashtags: true,  emojis: 'on' },
+  TikTok:     { maxWords: 90,  hashtags: true,  emojis: 'on' },
+  YouTube:    { maxWords: 180, hashtags: false, emojis: 'subtle' },
+  Facebook:   { maxWords: 180, hashtags: false, emojis: 'subtle' },
+  X:          { maxWords: 50,  hashtags: false, emojis: 'subtle' }
+};
+
+// Brand voice templates — deterministic building blocks
+const BRAND_VOICE = {
+  yeon: {
+    name: 'Yeon Studios',
+    badge: 'badge-yeon',
+    emoji: '🎬',
+    color: 'yeon',
+    descriptors: ['strategic', 'infrastructure-led', 'category-defining', 'scalable'],
+    openings: {
+      'Thought Leadership': [
+        'The next wave of OTT isn\'t about content — it\'s about the infrastructure beneath it.',
+        'Every platform that scales hits the same wall: the systems they built for 1x can\'t handle 10x.',
+        'Distribution is no longer a feature. It\'s the moat.'
+      ],
+      'Case Study': [
+        'When a regional OTT operator needed to scale without compromising data ownership, the answer wasn\'t bigger servers — it was smarter architecture.',
+        'A category leader came to us with a familiar problem: legacy infrastructure that couldn\'t keep up with growth. Here\'s what we built.'
+      ],
+      'Behind-the-Scenes': [
+        'Building OTT infrastructure means making decisions today that platforms will live with for a decade.',
+        'Every engineering choice is a strategic one. Here\'s how we think about it.'
+      ],
+      'Client Win': [
+        'Pleased to share that we\'ve completed another infrastructure deployment for a SEA OTT operator — quietly powering their next phase of growth.',
+        'A category-defining partnership goes live this quarter. Three years in the making.'
+      ],
+      'Event Recap': [
+        'Reflecting on a strong week at the regional media-tech summit — three takeaways shaping how we think about distribution.',
+        'Spent the week with operators, agencies, and decision-makers across the region. Here\'s what stood out.'
+      ],
+      'Promo': [
+        'For OTT operators thinking about their next infrastructure move — we\'re running a strategy session with our engineering leads.',
+        'Strategic infrastructure decisions deserve dedicated thinking. We\'re opening up advisory slots.'
+      ]
+    },
+    closingsByGoal: {
+      'Build authority': 'Distribution is the next competitive moat. Build it intentionally.',
+      'Drive inbound leads': 'If you\'re thinking about your distribution stack, message us.',
+      'Announce partnership': 'More to share as this rolls out.',
+      'Showcase capability': 'This is the kind of work we do. Quietly. At scale.',
+      'Recruit collaborators': 'If you build infrastructure that lasts, we should talk.',
+      'Promote event': 'Limited slots. Reach out if you want a seat.'
+    }
+  },
+  belive: {
+    name: 'BeLive Studios',
+    badge: 'badge-belive',
+    emoji: '🌟',
+    color: 'belive',
+    descriptors: ['cinematic', 'emotionally driven', 'culturally sharp', 'story-led'],
+    openings: {
+      'Thought Leadership': [
+        'Every great IP starts the same way — with someone refusing to settle for the obvious story.',
+        'The microdrama isn\'t a format. It\'s a discipline.',
+        'Culturally sharp content doesn\'t happen by accident. It happens by design.'
+      ],
+      'Case Study': [
+        'A story we shaped from the ground up — and the audience numbers that followed.',
+        'When a partner asked us for "something different," the brief became a discipline. Here\'s what we made.'
+      ],
+      'Behind-the-Scenes': [
+        'Behind every shot is a hundred decisions you never see. This is one of them.',
+        'A glimpse into the production day for our latest microdrama series.'
+      ],
+      'Client Win': [
+        'Proud to share a new IP partnership going into production this quarter.',
+        'Another original series wrapped — and the audience response is already shaping our next move.'
+      ],
+      'Event Recap': [
+        'Spent the week with creators, distributors, and IP partners. Three things stayed with us.',
+        'Reflecting on a powerful few days at the regional content summit.'
+      ],
+      'Promo': [
+        'New microdrama series dropping next month. Three languages. Twelve episodes. One unforgettable story.',
+        'For brands ready to build emotionally resonant content with us — limited Q3 slots opening.'
+      ]
+    },
+    closingsByGoal: {
+      'Build authority': 'Stories that scale require craft, not formula.',
+      'Drive inbound leads': 'If you\'re building something that needs a creative partner, let\'s talk.',
+      'Announce partnership': 'More to share as this comes to life.',
+      'Showcase capability': 'This is the work we live for.',
+      'Recruit collaborators': 'If you tell stories that move people, we want to hear from you.',
+      'Promote event': 'Drop us a message — we\'d love to see you there.'
+    }
+  }
+};
+
+// State management
+let state = loadState();
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STATE_KEY);
+    if (!raw) return defaultState();
+    const parsed = JSON.parse(raw);
+    return Object.assign(defaultState(), parsed);
+  } catch (e) { return defaultState(); }
+}
+
+function defaultState() {
+  return {
+    brand: 'yeon',
+    drafts: [],
+    outreach: [
+      { id: 'or1', name: 'Viu Southeast Asia', meta: 'Platform Lead · OTT', status: 'contacted', brand: 'yeon' },
+      { id: 'or2', name: 'meWatch Singapore', meta: 'Content Director', status: 'replied', brand: 'yeon' },
+      { id: 'or3', name: 'Toggle.sg', meta: 'VP Partnerships', status: 'meeting', brand: 'yeon' },
+      { id: 'or4', name: 'Mediacorp Creative', meta: 'Production Lead', status: 'contacted', brand: 'belive' }
+    ],
+    currentDraft: null
+  };
+}
+
+function saveState() {
+  try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch (e) {}
+}
+
+// Generation — deterministic, structured
+function generatePost(inputs) {
+  const { brand, platform, format, goal, audience, angle } = inputs;
+  const voice = BRAND_VOICE[brand];
+  const limit = PLATFORM_LIMITS[platform];
+  const openings = voice.openings[format] || voice.openings['Thought Leadership'];
+  // Deterministic pick using hash of inputs (so same inputs → same output)
+  const hash = (brand + platform + format + goal + audience + angle).split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  const opening = openings[hash % openings.length];
+  const closing = voice.closingsByGoal[goal] || voice.closingsByGoal['Build authority'];
+
+  // Build body from angle + audience framing
+  let body = '';
+  if (brand === 'yeon') {
+    body = `${angle.trim()}\n\nFor ${audience.toLowerCase()}, this isn't theoretical — it's the difference between platforms that scale cleanly and platforms that hit ceilings.\n\nThe choice happens at the architecture layer. ${voice.descriptors[0]}, ${voice.descriptors[1]} systems aren't built after the fact. They're designed in from day one.`;
+  } else {
+    body = `${angle.trim()}\n\nFor ${audience.toLowerCase()}, the work isn't about more content — it's about the right story, told with the right craft, hitting the right moment.\n\nThat's the discipline behind every microdrama, every IP, every cinematic frame we ship.`;
+  }
+
+  let text = `${opening}\n\n${body}\n\n${closing}`;
+
+  // Platform-specific formatting
+  if (platform === 'X') {
+    // Tight format
+    text = `${opening}\n\n${closing}`;
+  } else if (platform === 'TikTok') {
+    text = `${opening}\n\n${angle.trim()}\n\n${closing}`;
+  } else if (platform === 'Instagram' && limit.hashtags) {
+    const hashtags = brand === 'yeon'
+      ? '\n\n#OTT #StreamingTech #YeonStudios #ContentInfrastructure #Singapore #MediaTech'
+      : '\n\n#Microdrama #IPCreation #BeLiveStudios #Storytelling #Singapore #ContentProduction';
+    text += hashtags;
+  }
+
+  return text.trim();
+}
+
+// UI render functions
+function renderAll() {
+  renderBrand();
+  renderDrafts();
+  renderOutreach();
+  renderCalendar();
+  renderSnapshot();
+  renderPreviewMeta();
+}
+
+function renderBrand() {
+  const voice = BRAND_VOICE[state.brand];
+  document.getElementById('brand-emoji').textContent = voice.emoji;
+  document.getElementById('brand-select').value = state.brand;
+  const badge = document.getElementById('preview-brand');
+  badge.textContent = voice.name;
+  badge.className = 'badge ' + voice.badge;
+}
+
+function renderPreviewMeta() {
+  document.getElementById('preview-platform').textContent = document.getElementById('f-platform').value;
+  document.getElementById('preview-format').textContent = document.getElementById('f-format').value;
+}
+
+function renderDrafts() {
+  const list = document.getElementById('drafts-list');
+  document.getElementById('drafts-count').textContent = state.drafts.length;
+  if (!state.drafts.length) {
+    list.innerHTML = '<div class="empty">No drafts yet. Generate your first post above.</div>';
+    return;
+  }
+  list.innerHTML = state.drafts.slice().reverse().map(d => {
+    const voice = BRAND_VOICE[d.brand];
+    const statusClass = 'status-' + d.status;
+    const snippet = d.text.replace(/\n+/g, ' ').slice(0, 100) + (d.text.length > 100 ? '…' : '');
+    return `<div class="draft-item" data-id="${d.id}">
+      <div class="draft-meta">
+        <span class="badge ${voice.badge}">${voice.name}</span>
+        <span class="badge badge-platform">${d.platform}</span>
+        <span class="badge-status ${statusClass}">${d.status}</span>
+      </div>
+      <div class="draft-snippet">${escapeHtml(snippet)}</div>
+      ${d.scheduledAt ? `<div style="font-size:11px;color:var(--accent);margin-top:6px;font-weight:600;">📅 ${d.scheduledAt}</div>` : ''}
+    </div>`;
+  }).join('');
+  list.querySelectorAll('.draft-item').forEach(el => {
+    el.addEventListener('click', () => loadDraft(el.dataset.id));
+  });
+}
+
+function renderOutreach() {
+  const list = document.getElementById('outreach-list');
+  const filtered = state.outreach.filter(o => o.brand === state.brand);
+  if (!filtered.length) {
+    list.innerHTML = '<div class="empty">No outreach for this brand yet.</div>';
+    return;
+  }
+  const statusLabels = { 'not-contacted': 'Not contacted', 'contacted': 'Contacted', 'replied': 'Replied', 'meeting': 'Meeting' };
+  list.innerHTML = filtered.map(o => `
+    <div class="outreach-item">
+      <div class="outreach-top">
+        <div class="outreach-name">${escapeHtml(o.name)}</div>
+        <span class="outreach-status or-${o.status}">${statusLabels[o.status] || o.status}</span>
+      </div>
+      <div class="outreach-meta">${escapeHtml(o.meta)}</div>
+      <div style="margin-top:8px;display:flex;gap:6px;">
+        <select data-id="${o.id}" class="or-status-select" style="font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;flex:1;">
+          <option value="not-contacted" ${o.status==='not-contacted'?'selected':''}>Not contacted</option>
+          <option value="contacted" ${o.status==='contacted'?'selected':''}>Contacted</option>
+          <option value="replied" ${o.status==='replied'?'selected':''}>Replied</option>
+          <option value="meeting" ${o.status==='meeting'?'selected':''}>Meeting</option>
+        </select>
+        <button class="btn btn-danger or-delete" data-id="${o.id}" type="button" style="padding:4px 10px;min-height:auto;font-size:11px;">✕</button>
+      </div>
+    </div>
+  `).join('');
+  list.querySelectorAll('.or-status-select').forEach(sel => {
+    sel.addEventListener('change', e => {
+      const o = state.outreach.find(x => x.id === e.target.dataset.id);
+      if (o) { o.status = e.target.value; saveState(); }
+    });
+  });
+  list.querySelectorAll('.or-delete').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const id = e.target.dataset.id;
+      state.outreach = state.outreach.filter(x => x.id !== id);
+      saveState();
+      renderOutreach();
+    });
+  });
+}
+
+function renderCalendar() {
+  const cal = document.getElementById('calendar');
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const monthName = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  document.getElementById('cal-month').textContent = monthName;
+
+  const firstDay = new Date(year, month, 1).getDay(); // 0 = Sun
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = now.getDate();
+
+  // Map of day → scheduled posts
+  const scheduledByDay = {};
+  state.drafts.filter(d => d.status === 'scheduled' && d.scheduledAt).forEach(d => {
+    const date = new Date(d.scheduledAt);
+    if (date.getFullYear() === year && date.getMonth() === month) {
+      const day = date.getDate();
+      if (!scheduledByDay[day]) scheduledByDay[day] = [];
+      scheduledByDay[day].push(d);
+    }
+  });
+
+  const headers = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  let html = headers.map(h => `<div class="cal-head">${h}</div>`).join('');
+  // empty cells before first day
+  for (let i = 0; i < firstDay; i++) html += '<div class="cal-cell empty"></div>';
+  for (let d = 1; d <= daysInMonth; d++) {
+    const isToday = d === today;
+    const posts = scheduledByDay[d] || [];
+    const dots = posts.map(p => `<span class="cal-dot dot-${p.brand === 'yeon' ? 'yeon' : 'belive'}"></span>`).join('');
+    html += `<div class="cal-cell ${isToday ? 'today' : ''}"><div class="cal-num">${d}</div>${dots}</div>`;
+  }
+  cal.innerHTML = html;
+}
+
+function renderSnapshot() {
+  const yeonDrafts = state.drafts.filter(d => d.brand === 'yeon' && d.status !== 'scheduled').length;
+  const yeonSched = state.drafts.filter(d => d.brand === 'yeon' && d.status === 'scheduled').length;
+  const beliveDrafts = state.drafts.filter(d => d.brand === 'belive' && d.status !== 'scheduled').length;
+  const beliveSched = state.drafts.filter(d => d.brand === 'belive' && d.status === 'scheduled').length;
+  document.getElementById('snap-yeon-drafts').textContent = yeonDrafts;
+  document.getElementById('snap-yeon-scheduled').textContent = yeonSched;
+  document.getElementById('snap-belive-drafts').textContent = beliveDrafts;
+  document.getElementById('snap-belive-scheduled').textContent = beliveSched;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+function setStatus(status) {
+  const el = document.getElementById('preview-status');
+  const labels = { empty: 'No draft yet', ready: 'Ready', edited: 'Edited', approved: 'Approved', scheduled: 'Scheduled' };
+  el.textContent = labels[status] || status;
+  el.className = 'badge-status status-' + status;
+  state.currentStatus = status;
+}
+
+function updateCounts() {
+  const text = document.getElementById('draft-text').value;
+  document.getElementById('char-count').textContent = text.length;
+  document.getElementById('word-count').textContent = text.trim() ? text.trim().split(/\s+/).length : 0;
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (type || '');
+  clearTimeout(t._timeout);
+  t._timeout = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+function loadDraft(id) {
+  const d = state.drafts.find(x => x.id === id);
+  if (!d) return;
+  state.brand = d.brand;
+  document.getElementById('brand-select').value = d.brand;
+  document.getElementById('f-platform').value = d.platform;
+  document.getElementById('f-format').value = d.format;
+  document.getElementById('f-goal').value = d.goal;
+  document.getElementById('f-audience').value = d.audience;
+  document.getElementById('f-angle').value = d.angle;
+  document.getElementById('draft-text').value = d.text;
+  state.currentDraft = id;
+  setStatus(d.status);
+  renderBrand();
+  renderPreviewMeta();
+  updateCounts();
+  // Switch to preview tab on mobile
+  const midTab = document.querySelector('[data-tab="mid"]');
+  if (midTab && window.innerWidth <= 760) midTab.click();
+  showToast('Draft loaded');
+}
+
+// Event handlers
+document.getElementById('brand-select').addEventListener('change', e => {
+  state.brand = e.target.value;
+  saveState();
+  renderBrand();
+  renderOutreach();
+});
+
+['f-platform', 'f-format'].forEach(id => {
+  document.getElementById(id).addEventListener('change', renderPreviewMeta);
+});
+
+document.getElementById('btn-generate').addEventListener('click', () => {
+  const inputs = {
+    brand: state.brand,
+    platform: document.getElementById('f-platform').value,
+    format: document.getElementById('f-format').value,
+    goal: document.getElementById('f-goal').value,
+    audience: document.getElementById('f-audience').value,
+    angle: document.getElementById('f-angle').value.trim()
+  };
+  if (!inputs.angle) {
+    showToast('Please add a Growth Angle to shape the post', 'error');
+    document.getElementById('f-angle').focus();
+    return;
+  }
+  const text = generatePost(inputs);
+  document.getElementById('draft-text').value = text;
+  // Carry optional schedule from inputs to approve fields
+  const dateVal = document.getElementById('f-date').value;
+  const timeVal = document.getElementById('f-time').value;
+  if (dateVal) document.getElementById('approve-date').value = dateVal;
+  if (timeVal) document.getElementById('approve-time').value = timeVal;
+  state.currentDraft = null;
+  setStatus('ready');
+  updateCounts();
+  showToast('Draft generated. Review and edit before approving.', 'success');
+  // On mobile, switch to preview
+  const midTab = document.querySelector('[data-tab="mid"]');
+  if (midTab && window.innerWidth <= 760) midTab.click();
+});
+
+document.getElementById('draft-text').addEventListener('input', () => {
+  updateCounts();
+  if (state.currentStatus === 'ready' || state.currentStatus === 'approved' || state.currentStatus === 'scheduled') {
+    setStatus('edited');
+  }
+});
+
+document.getElementById('btn-save-draft').addEventListener('click', () => {
+  const text = document.getElementById('draft-text').value.trim();
+  if (!text) { showToast('Nothing to save', 'error'); return; }
+  saveDraftToList('draft');
+  showToast('Saved as draft', 'success');
+});
+
+document.getElementById('btn-approve').addEventListener('click', () => {
+  const text = document.getElementById('draft-text').value.trim();
+  if (!text) { showToast('Generate or write a draft first', 'error'); return; }
+  const date = document.getElementById('approve-date').value;
+  const time = document.getElementById('approve-time').value;
+  if (!date || !time) {
+    showToast('Pick a schedule date and time before approving', 'error');
+    return;
+  }
+  saveDraftToList('scheduled', date + ' ' + time);
+  showToast('Approved & scheduled for ' + date + ' at ' + time, 'success');
+});
+
+function saveDraftToList(status, scheduledAt) {
+  const text = document.getElementById('draft-text').value.trim();
+  const draft = {
+    id: state.currentDraft || ('d' + Date.now()),
+    brand: state.brand,
+    platform: document.getElementById('f-platform').value,
+    format: document.getElementById('f-format').value,
+    goal: document.getElementById('f-goal').value,
+    audience: document.getElementById('f-audience').value,
+    angle: document.getElementById('f-angle').value,
+    text: text,
+    status: status,
+    scheduledAt: scheduledAt || null,
+    createdAt: new Date().toISOString()
+  };
+  const existing = state.drafts.findIndex(d => d.id === draft.id);
+  if (existing >= 0) state.drafts[existing] = draft;
+  else state.drafts.push(draft);
+  state.currentDraft = draft.id;
+  setStatus(status);
+  saveState();
+  renderDrafts();
+  renderCalendar();
+  renderSnapshot();
+}
+
+document.getElementById('btn-discard').addEventListener('click', () => {
+  if (!confirm('Discard the current draft? This cannot be undone.')) return;
+  if (state.currentDraft) {
+    state.drafts = state.drafts.filter(d => d.id !== state.currentDraft);
+    state.currentDraft = null;
+    saveState();
+    renderDrafts();
+    renderCalendar();
+    renderSnapshot();
+  }
+  document.getElementById('draft-text').value = '';
+  setStatus('empty');
+  updateCounts();
+  showToast('Discarded');
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+  document.getElementById('f-angle').value = '';
+  document.getElementById('f-date').value = '';
+  document.getElementById('f-time').value = '';
+  document.getElementById('f-platform').selectedIndex = 0;
+  document.getElementById('f-format').selectedIndex = 0;
+  document.getElementById('f-goal').selectedIndex = 0;
+  document.getElementById('f-audience').selectedIndex = 0;
+  renderPreviewMeta();
+  showToast('Form reset');
+});
+
+document.getElementById('btn-copy').addEventListener('click', () => {
+  const text = document.getElementById('draft-text').value;
+  if (!text) { showToast('Nothing to copy', 'error'); return; }
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard', 'success'));
+  } else {
+    const ta = document.getElementById('draft-text');
+    ta.select(); document.execCommand('copy');
+    showToast('Copied to clipboard', 'success');
+  }
+});
+
+document.getElementById('btn-add-outreach').addEventListener('click', () => {
+  const name = prompt('Contact or company name:');
+  if (!name) return;
+  const meta = prompt('Title or context (e.g. "VP Partnerships · OTT"):') || '';
+  state.outreach.push({
+    id: 'or' + Date.now(),
+    name: name.trim(),
+    meta: meta.trim(),
+    status: 'not-contacted',
+    brand: state.brand
+  });
+  saveState();
+  renderOutreach();
+  showToast('Outreach added');
+});
+
+// Mobile tabs
+document.querySelectorAll('#mobile-tabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const target = btn.dataset.tab;
+    document.querySelectorAll('#mobile-tabs button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.col-left, .col-mid, .col-right').forEach(c => c.classList.remove('tab-active'));
+    document.querySelector('.col-' + target).classList.add('tab-active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+});
+
+// Init
+renderAll();
+updateCounts();
+setStatus(state.currentDraft ? state.currentStatus || 'edited' : 'empty');
+</script>
+</body>
+</html>
