@@ -1,0 +1,91 @@
+{
+  "id": "belive-studios",
+  "name": "BeLive Studios",
+  "industry": "Digital content production, IP creation, microdrama, short-form storytelling",
+  "positioning": "Category-defining creative core of an OTT-native content ecosystem — full-stack IP studio for storytelling, microdrama, and cinematic production.",
+  "differentiator": "Strong capabilities in microdrama development, cinematic storytelling, and agile production — operating in tandem with Yeon Studios' OTT infrastructure.",
+  "voice": {
+    "description": "Cinematic, emotionally driven, and culturally sharp. Speaks in stories, emotion, and cultural relevance — not specs.",
+    "keywords": ["Cinematic", "Emotionally Driven", "Culturally Sharp", "Bold", "Creative"],
+    "characteristics": [
+      "Speaks in stories, emotion, and cultural relevance — not specs",
+      "Positions as the creative force behind IP that connects with audiences",
+      "Bold and confident, with cultural awareness",
+      "Future-facing without losing human warmth",
+      "Category-defining: introduces new language for a new format"
+    ]
+  },
+  "off_limits": [
+    "Political content",
+    "Sensitive claims",
+    "Unverified client results",
+    "Competitor attacks",
+    "Overly corporate, dry, or technical tone"
+  ],
+  "audience": {
+    "primary": [
+      "Brand managers and marketing leads seeking content partnerships",
+      "Agency heads and creative directors",
+      "Event organizers in entertainment and media",
+      "Journalists and press covering content, IP, and streaming",
+      "OTT platform operators seeking original IP",
+      "Potential creative collaborators and co-producers"
+    ],
+    "markets": {
+      "primary": "Singapore",
+      "secondary": "Southeast Asia",
+      "expansion": "Korea, China, global"
+    },
+    "language": "English first. Bilingual only if a specific audience segment requires it."
+  },
+  "content_pillars": [
+    {
+      "id": "storytelling-ip",
+      "name": "Storytelling & IP Creation",
+      "description": "How BeLive Studios develops microdramas, original IP, and cinematic content"
+    },
+    {
+      "id": "behind-production",
+      "name": "Behind the Production",
+      "description": "Behind-the-scenes of shoots, creative process, cast and crew moments"
+    },
+    {
+      "id": "thought-leadership",
+      "name": "Industry Thought Leadership",
+      "description": "Insights on microdrama trends, short-form content, the future of storytelling"
+    },
+    {
+      "id": "client-wins",
+      "name": "Client Wins & Portfolio",
+      "description": "Highlights from completed productions and successful IP"
+    },
+    {
+      "id": "events-cultural",
+      "name": "Events & Cultural Moments",
+      "description": "Recaps, announcements, and timely cultural angles"
+    }
+  ],
+  "platforms": {
+    "instagram": { "active": true, "cadence_per_week": "3-5" },
+    "linkedin":  { "active": true, "cadence_per_week": "2-4" },
+    "tiktok":    { "active": true, "cadence_per_week": "3-5" },
+    "youtube":   { "active": true, "cadence_per_week": "1-2" },
+    "facebook":  { "active": true, "cadence_per_week": "2-3" },
+    "x":         { "active": false, "cadence_per_week": "3-7" }
+  },
+  "approval": {
+    "human_review_required": true,
+    "autonomous_posting": "Only for low-risk pre-approved templates",
+    "strategic_approver": "CEO",
+    "operational_owner": "Kevin or assigned social media manager"
+  },
+  "success_metrics_3_month": [
+    "3–5 strategic OTT or content partnerships secured",
+    "10–20 qualified inbound leads (brands, platforms, IP collaborators)",
+    "2–3 press or industry features",
+    "Strong positioning as category leader in microdrama production + IP creation",
+    "Validated content-to-partnership pipeline established"
+  ],
+  "timezone": "Asia/Singapore",
+  "active": true
+}

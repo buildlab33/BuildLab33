@@ -1,0 +1,92 @@
+{
+  "id": "yeon-studios",
+  "name": "Yeon Studios",
+  "industry": "Media-tech and OTT infrastructure",
+  "positioning": "Category-defining infrastructure layer of a vertically integrated content and distribution ecosystem.",
+  "differentiator": "Proprietary OTT and video infrastructure giving clients tighter control over distribution, audience data, and monetisation.",
+  "voice": {
+    "description": "Strategic, visionary, and infrastructure-led. Speaks in systems and scale, not hype.",
+    "keywords": ["Strategic", "Visionary", "Scalable", "Authoritative", "Precise"],
+    "characteristics": [
+      "Speaks in systems and scale, not hype",
+      "Positions as the enabler behind the content revolution",
+      "Confident without being arrogant",
+      "Future-facing without being vague",
+      "Category-defining: introduces new language rather than borrowing competitors'"
+    ]
+  },
+  "off_limits": [
+    "Political content",
+    "Sensitive claims",
+    "Unverified client results",
+    "Competitor attacks",
+    "Casual or sensational tone",
+    "Playful or hype-driven language"
+  ],
+  "audience": {
+    "primary": [
+      "Brand managers and marketing leads at mid-to-large companies",
+      "Agency heads and media buying leads",
+      "OTT platform operators and digital distributors",
+      "Event organizers in media and tech",
+      "Journalists and press covering media-tech and streaming",
+      "Potential IP collaborators and content partners"
+    ],
+    "markets": {
+      "primary": "Singapore",
+      "secondary": "Southeast Asia",
+      "expansion": "Korea, China, global"
+    },
+    "language": "English first. Bilingual only if a specific audience segment requires it."
+  },
+  "content_pillars": [
+    {
+      "id": "ott-infrastructure",
+      "name": "OTT Infrastructure & Technology",
+      "description": "Thought leadership on platform architecture, scalable video systems, distribution ecosystems"
+    },
+    {
+      "id": "industry-authority",
+      "name": "Industry Authority",
+      "description": "Insights on streaming trends, monetisation models, the future of media-tech"
+    },
+    {
+      "id": "client-wins",
+      "name": "Client Wins & Case Studies",
+      "description": "How partners have scaled using Yeon Studios' infrastructure"
+    },
+    {
+      "id": "behind-the-platform",
+      "name": "Behind the Platform",
+      "description": "How the technology is built and what problems it solves"
+    },
+    {
+      "id": "events-partnerships",
+      "name": "Events & Partnerships",
+      "description": "Recaps, announcements, industry moments"
+    }
+  ],
+  "platforms": {
+    "instagram": { "active": true, "cadence_per_week": "3-5" },
+    "linkedin":  { "active": true, "cadence_per_week": "2-4" },
+    "tiktok":    { "active": true, "cadence_per_week": "3-5" },
+    "youtube":   { "active": true, "cadence_per_week": "1-2" },
+    "facebook":  { "active": true, "cadence_per_week": "2-3" },
+    "x":         { "active": false, "cadence_per_week": "3-7" }
+  },
+  "approval": {
+    "human_review_required": true,
+    "autonomous_posting": "Only for low-risk pre-approved templates",
+    "strategic_approver": "CEO",
+    "operational_owner": "Kevin or assigned social media manager"
+  },
+  "success_metrics_3_month": [
+    "3–5 strategic OTT or content partnerships secured",
+    "10–20 qualified inbound leads (brands, platforms, IP collaborators)",
+    "2–3 press or industry features",
+    "Strong positioning as category leader in OTT infrastructure + IP creation",
+    "Validated content-to-partnership pipeline established"
+  ],
+  "timezone": "Asia/Singapore",
+  "active": true
+}
