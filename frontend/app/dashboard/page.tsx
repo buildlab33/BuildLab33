@@ -12,7 +12,7 @@ export default function DashboardPage() {
   const [brands, setBrands] = useState<Brand[]>([]);
 
   useEffect(() => {
-    getBrands().then((res) => setBrands(res.data)).catch(() => {});
+    getBrands().then((res) => setBrands(res.data?.brands || res.data || [])).catch(() => {});
   }, []);
 
   const greeting = () => {
@@ -52,15 +52,6 @@ export default function DashboardPage() {
           <div style={{ fontSize: 24, marginBottom: 8 }}>☰</div>
           <div style={{ fontWeight: 700, marginBottom: 4 }}>View Posts</div>
           <div style={{ fontSize: 13, color: "#6b7280" }}>Manage content pipeline</div>
-        </button>
-        <button
-          className="card"
-          onClick={() => router.push("/dashboard/leads")}
-          style={{ textAlign: "left", cursor: "pointer", border: "2px dashed #e5e7eb", background: "white" }}
-        >
-          <div style={{ fontSize: 24, marginBottom: 8 }}>◈</div>
-          <div style={{ fontWeight: 700, marginBottom: 4 }}>Leads</div>
-          <div style={{ fontSize: 13, color: "#6b7280" }}>Track outreach targets</div>
         </button>
       </div>
 

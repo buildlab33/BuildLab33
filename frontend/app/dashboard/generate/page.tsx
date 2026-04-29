@@ -30,8 +30,9 @@ function GenerateForm() {
 
   useEffect(() => {
     getBrands().then((res) => {
-      setBrands(res.data);
-      if (!brandId && res.data.length > 0) setBrandId(res.data[0].id);
+      const brandsData = res.data?.brands || res.data || [];
+      setBrands(brandsData);
+      if (!brandId && brandsData.length > 0) setBrandId(brandsData[0].id);
     });
   }, []);
 
