@@ -8,9 +8,11 @@ import { getMe } from "@/lib/api";
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { user, setAuth, loadFromStorage } = useAuthStore();
+  const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setMounted(true);
     const init = async () => {
       loadFromStorage();
       const token = localStorage.getItem("access_token");
@@ -31,7 +33,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     init();
   }, [router, setAuth, loadFromStorage]);
 
-  if (loading) {
+  if (!mounted || loading) {
     return (
       <div style={{ display: "flex", minHeight: "100vh", alignItems: "center", justifyContent: "center" }}>
         <div style={{ textAlign: "center" }}>
