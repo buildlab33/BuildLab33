@@ -2,6 +2,15 @@
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { getBrands, generatePost } from "@/lib/api";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { BrandBadge } from "@/components/domain/BrandBadge";
+import { PlatformPill } from "@/components/domain/PlatformPill";
+import { CharacterCounter } from "@/components/domain/CharacterCounter";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 interface Brand { id: string; name: string; }
 
@@ -13,6 +22,11 @@ const PLATFORMS = [
   { id: "x", label: "X (Twitter)" },
   { id: "youtube", label: "YouTube" },
 ];
+
+const PLATFORM_LIMITS: Record<string, number> = {
+  linkedin: 3000, instagram: 2200, tiktok: 150,
+  facebook: 63206, x: 280, youtube: 5000,
+};
 
 function GenerateForm() {
   const searchParams = useSearchParams();
@@ -68,25 +82,25 @@ function GenerateForm() {
   };
 
   const selectedBrand = brands.find((b) => b.id === brandId);
-  const brandColor = brandId === "yeon-studios" ? "#6366f1" : "#ec4899";
+  const resultCharCount = result?.text.length ?? 0;
+  const platformLimit = PLATFORM_LIMITS[platform] ?? 3000;
 
   return (
     <div>
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0 }}>Generate Content</h1>
-        <p style={{ color: "#6b7280", marginTop: 4, fontSize: 14 }}>
-          AI-powered post generation with brand voice
-        </p>
-      </div>
+      <PageHeader
+        title="Generate Content"
+        subtitle="AI-powered post generation with brand voice"
+      />
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+      <div className="grid gap-6" style={{ gridTemplateColumns: "1fr 1fr" }}>
         {/* Form */}
-        <div className="card">
+        <Card>
           <form onSubmit={handleGenerate}>
-            <div style={{ marginBottom: 16 }}>
-              <label className="form-label">Brand</label>
+            <div className="mb-4">
+              <Label htmlFor="brand-select">Brand</Label>
               <select
-                className="form-input"
+                id="brand-select"
+                className="mt-1 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text-primary outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 value={brandId}
                 onChange={(e) => setBrandId(e.target.value)}
                 required
@@ -97,35 +111,25 @@ function GenerateForm() {
               </select>
             </div>
 
-            <div style={{ marginBottom: 16 }}>
-              <label className="form-label">Platform</label>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            <div className="mb-4">
+              <Label>Platform</Label>
+              <div className="mt-1 flex flex-wrap gap-2">
                 {PLATFORMS.map((p) => (
-                  <button
+                  <PlatformPill
                     key={p.id}
-                    type="button"
-                    onClick={() => setPlatform(p.id)}
-                    style={{
-                      padding: "6px 14px",
-                      borderRadius: 20,
-                      border: platform === p.id ? `2px solid ${brandColor}` : "2px solid #e5e7eb",
-                      background: platform === p.id ? `${brandColor}15` : "white",
-                      color: platform === p.id ? brandColor : "#374151",
-                      fontSize: 13,
-                      fontWeight: 600,
-                      cursor: "pointer",
-                    }}
-                  >
-                    {p.label}
-                  </button>
+                    platform={p.id}
+                    active={platform === p.id}
+                    onToggle={(id) => setPlatform(id)}
+                  />
                 ))}
               </div>
             </div>
 
-            <div style={{ marginBottom: 16 }}>
-              <label className="form-label">Campaign Goal *</label>
-              <input
-                className="form-input"
+            <div className="mb-4">
+              <Label htmlFor="goal-input">Campaign Goal *</Label>
+              <Input
+                id="goal-input"
+                className="mt-1"
                 value={goal}
                 onChange={(e) => setGoal(e.target.value)}
                 placeholder="e.g. Build brand awareness, drive sign-ups"
@@ -133,10 +137,11 @@ function GenerateForm() {
               />
             </div>
 
-            <div style={{ marginBottom: 16 }}>
-              <label className="form-label">Target Audience *</label>
-              <input
-                className="form-input"
+            <div className="mb-4">
+              <Label htmlFor="audience-input">Target Audience *</Label>
+              <Input
+                id="audience-input"
+                className="mt-1"
                 value={audience}
                 onChange={(e) => setAudience(e.target.value)}
                 placeholder="e.g. Streaming platform founders in SEA"
@@ -144,96 +149,86 @@ function GenerateForm() {
               />
             </div>
 
-            <div style={{ marginBottom: 16 }}>
-              <label className="form-label">Content Format (optional)</label>
-              <input
-                className="form-input"
+            <div className="mb-4">
+              <Label htmlFor="format-input">Content Format (optional)</Label>
+              <Input
+                id="format-input"
+                className="mt-1"
                 value={format}
                 onChange={(e) => setFormat(e.target.value)}
                 placeholder="e.g. thought leadership, case study, tips"
               />
             </div>
 
-            <div style={{ marginBottom: 24 }}>
-              <label className="form-label">Growth Angle (optional)</label>
-              <input
-                className="form-input"
+            <div className="mb-6">
+              <Label htmlFor="angle-input">Growth Angle (optional)</Label>
+              <Input
+                id="angle-input"
+                className="mt-1"
                 value={angle}
                 onChange={(e) => setAngle(e.target.value)}
                 placeholder="e.g. pain point, industry trend, success story"
               />
             </div>
 
-            <button className="btn-primary" type="submit" disabled={loading} style={{ width: "100%" }}>
+            <Button type="submit" disabled={loading} className="w-full">
               {loading ? "Generating..." : `✦ Generate for ${selectedBrand?.name || "Brand"}`}
-            </button>
+            </Button>
           </form>
-        </div>
+        </Card>
 
         {/* Result */}
-        <div className="card" style={{ position: "relative" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Generated Post</h3>
+        <Card className="relative">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-sm font-bold text-text-primary">Generated Post</h3>
             {result && (
-              <button className="btn-secondary" onClick={handleCopy} style={{ fontSize: 12, padding: "6px 12px" }}>
+              <Button variant="ghost" onClick={handleCopy} className="text-xs px-3 py-1.5 h-auto">
                 {copied ? "✓ Copied" : "Copy"}
-              </button>
+              </Button>
             )}
           </div>
 
           {loading && (
-            <div style={{ textAlign: "center", padding: "60px 0", color: "#6b7280" }}>
-              <div style={{ fontSize: 32, marginBottom: 12 }}>✦</div>
-              <div>Generating with AI...</div>
+            <div className="text-center py-16 text-text-muted">
+              <div className="text-3xl mb-3">✦</div>
+              <div className="text-sm">Generating with AI...</div>
             </div>
           )}
 
           {error && (
-            <div style={{ background: "#fef2f2", color: "#dc2626", padding: 16, borderRadius: 8, fontSize: 13 }}>
+            <div className="bg-red-50 text-error p-4 rounded-lg text-xs">
               {error}
             </div>
           )}
 
           {result && !loading && (
             <div>
-              <div style={{
-                display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap"
-              }}>
-                <span className={result.brand_id === "yeon-studios" ? "badge-yeon" : "badge-belive"}>
-                  {brands.find((b) => b.id === result.brand_id)?.name}
-                </span>
-                <span style={{
-                  background: "#f3f4f6", color: "#374151",
-                  padding: "3px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600,
-                }}>
-                  {result.platform}
-                </span>
+              <div className="flex gap-2 mb-4 flex-wrap items-center">
+                <BrandBadge brandId={result.brand_id} brandName={brands.find((b) => b.id === result.brand_id)?.name ?? result.brand_id} />
+                <Badge>{result.platform}</Badge>
+                <CharacterCounter current={resultCharCount} max={platformLimit} className="ml-auto" />
               </div>
-              <div style={{
-                background: "#f9fafb", borderRadius: 8, padding: 16,
-                fontSize: 14, lineHeight: 1.7, whiteSpace: "pre-wrap",
-                minHeight: 200, color: "#1a202c",
-              }}>
+              <div className="bg-elevated rounded-lg p-4 text-sm leading-relaxed whitespace-pre-wrap min-h-[200px] text-text-primary">
                 {result.text}
               </div>
-              <div style={{ marginTop: 16, display: "flex", gap: 8 }}>
-                <button className="btn-primary" style={{ flex: 1, fontSize: 13 }}>
-                  ✓ Approve & Save
-                </button>
-                <button className="btn-secondary" onClick={handleGenerate} style={{ fontSize: 13 }}>
+              <div className="mt-4 flex gap-2">
+                <Button className="flex-1 text-xs">
+                  ✓ Approve &amp; Save
+                </Button>
+                <Button variant="ghost" onClick={handleGenerate} className="text-xs">
                   Regenerate
-                </button>
+                </Button>
               </div>
             </div>
           )}
 
           {!result && !loading && !error && (
-            <div style={{ textAlign: "center", padding: "60px 0", color: "#9ca3af" }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }}>✦</div>
-              <div style={{ fontSize: 14 }}>Fill in the form and click Generate</div>
+            <div className="text-center py-16 text-text-muted">
+              <div className="text-4xl mb-3">✦</div>
+              <div className="text-sm">Fill in the form and click Generate</div>
             </div>
           )}
-        </div>
+        </Card>
       </div>
     </div>
   );

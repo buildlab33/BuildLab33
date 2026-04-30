@@ -1,21 +1,22 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { BrandBadge } from "@/components/domain/BrandBadge";
+import { StatusBadge } from "@/components/domain/StatusBadge";
+import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/layout/PageHeader";
 
-const STATUS_COLORS: Record<string, string> = {
-  draft: "#6b7280",
-  pending: "#f59e0b",
-  approved: "#10b981",
-  scheduled: "#6366f1",
-  published: "#059669",
-  removed: "#dc2626",
-};
+type PostStatus = "draft" | "pending" | "approved" | "scheduled" | "published" | "rejected";
 
 const MOCK_POSTS = [
-  { id: "1", brand_id: "yeon-studios", platform: "linkedin", text: "The future of OTT infrastructure is not about more content—it's about smarter delivery. At Yeon Studios, we're building the rails that let streaming platforms scale without the overhead.", status: "approved", created_at: "2026-04-28" },
-  { id: "2", brand_id: "belive-studios", platform: "instagram", text: "Every frame tells a story. Our latest microdrama production wrapped this week and we can't wait to share what we've been working on. Stay tuned. 🎬 #BeLiveStudios #Microdrama", status: "draft", created_at: "2026-04-28" },
-  { id: "3", brand_id: "yeon-studios", platform: "linkedin", text: "Why are mid-size streaming platforms still losing 30% of their revenue to infrastructure inefficiency? We break down the 3 biggest cost centres and how to fix them.", status: "pending", created_at: "2026-04-27" },
+  { id: "1", brand_id: "yeon-studios", brand_name: "Yeon Studios", platform: "linkedin", text: "The future of OTT infrastructure is not about more content—it's about smarter delivery. At Yeon Studios, we're building the rails that let streaming platforms scale without the overhead.", status: "approved" as PostStatus, created_at: "2026-04-28" },
+  { id: "2", brand_id: "belive-studios", brand_name: "BeLive Studios", platform: "instagram", text: "Every frame tells a story. Our latest microdrama production wrapped this week and we can't wait to share what we've been working on. Stay tuned. 🎬 #BeLiveStudios #Microdrama", status: "draft" as PostStatus, created_at: "2026-04-28" },
+  { id: "3", brand_id: "yeon-studios", brand_name: "Yeon Studios", platform: "linkedin", text: "Why are mid-size streaming platforms still losing 30% of their revenue to infrastructure inefficiency? We break down the 3 biggest cost centres and how to fix them.", status: "pending" as PostStatus, created_at: "2026-04-27" },
 ];
+
+const FILTER_OPTIONS = ["all", "draft", "pending", "approved", "scheduled", "published"];
 
 export default function PostsPage() {
   const router = useRouter();
@@ -25,33 +26,28 @@ export default function PostsPage() {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-        <div>
-          <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0 }}>Posts</h1>
-          <p style={{ color: "#6b7280", marginTop: 4, fontSize: 14 }}>Manage your content pipeline</p>
-        </div>
-        <button className="btn-primary" onClick={() => router.push("/dashboard/generate")}>
-          ✦ Generate New
-        </button>
-      </div>
+      <PageHeader
+        title="Posts"
+        subtitle="Manage your content pipeline"
+        action={
+          <Button onClick={() => router.push("/dashboard/generate")}>
+            ✦ Generate New
+          </Button>
+        }
+      />
 
       {/* Filters */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
-        {["all", "draft", "pending", "approved", "scheduled", "published"].map((s) => (
+      <div className="flex gap-2 mb-6 flex-wrap">
+        {FILTER_OPTIONS.map((s) => (
           <button
             key={s}
             onClick={() => setFilter(s)}
-            style={{
-              padding: "6px 14px",
-              borderRadius: 20,
-              border: filter === s ? "2px solid #6366f1" : "2px solid #e5e7eb",
-              background: filter === s ? "#6366f115" : "white",
-              color: filter === s ? "#6366f1" : "#374151",
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: "pointer",
-              textTransform: "capitalize",
-            }}
+            className={[
+              "px-3 py-1.5 rounded-full border text-xs font-semibold capitalize transition-colors duration-150",
+              filter === s
+                ? "border-primary bg-primary-muted text-text-active"
+                : "border-border bg-surface text-text-muted hover:border-elevated hover:text-text-secondary",
+            ].join(" ")}
           >
             {s}
           </button>
@@ -59,53 +55,41 @@ export default function PostsPage() {
       </div>
 
       {/* Posts list */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div className="flex flex-col gap-3">
         {filtered.map((post) => (
-          <div key={post.id} className="card" style={{ cursor: "pointer" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <span className={post.brand_id === "yeon-studios" ? "badge-yeon" : "badge-belive"}>
-                  {post.brand_id === "yeon-studios" ? "Yeon Studios" : "BeLive Studios"}
-                </span>
-                <span style={{
-                  background: "#f3f4f6", color: "#374151",
-                  padding: "3px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600,
-                }}>
-                  {post.platform}
-                </span>
+          <Card key={post.id} clickable>
+            <div className="flex justify-between items-start mb-3">
+              <div className="flex gap-2 items-center">
+                <BrandBadge brandId={post.brand_id} brandName={post.brand_name} />
+                <Badge>{post.platform}</Badge>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{
-                  color: STATUS_COLORS[post.status],
-                  fontSize: 12, fontWeight: 600, textTransform: "capitalize",
-                }}>
-                  ● {post.status}
-                </span>
-                <span style={{ color: "#9ca3af", fontSize: 12 }}>{post.created_at}</span>
+              <div className="flex items-center gap-2">
+                <StatusBadge status={post.status} />
+                <span className="text-text-muted text-xs">{post.created_at}</span>
               </div>
             </div>
-            <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: "#374151" }}>
+            <p className="m-0 text-sm leading-relaxed text-text-secondary">
               {post.text.length > 180 ? post.text.slice(0, 180) + "..." : post.text}
             </p>
-            <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
+            <div className="mt-3 flex gap-2">
               {post.status === "draft" && (
-                <button className="btn-primary" style={{ fontSize: 12, padding: "6px 14px" }}>Submit for Approval</button>
+                <Button className="text-xs px-3 py-1.5 h-auto">Submit for Approval</Button>
               )}
               {post.status === "approved" && (
-                <button className="btn-primary" style={{ fontSize: 12, padding: "6px 14px" }}>Schedule</button>
+                <Button className="text-xs px-3 py-1.5 h-auto">Schedule</Button>
               )}
-              <button className="btn-secondary" style={{ fontSize: 12, padding: "6px 14px" }}>Edit</button>
+              <Button variant="ghost" className="text-xs px-3 py-1.5 h-auto">Edit</Button>
             </div>
-          </div>
+          </Card>
         ))}
 
         {filtered.length === 0 && (
-          <div style={{ textAlign: "center", padding: "60px 0", color: "#9ca3af" }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>☰</div>
-            <div>No posts found</div>
-            <button className="btn-primary" style={{ marginTop: 16 }} onClick={() => router.push("/dashboard/generate")}>
+          <div className="text-center py-16 text-text-muted">
+            <div className="text-3xl mb-3">☰</div>
+            <div className="text-sm">No posts found</div>
+            <Button className="mt-4" onClick={() => router.push("/dashboard/generate")}>
               Generate your first post
-            </button>
+            </Button>
           </div>
         )}
       </div>
