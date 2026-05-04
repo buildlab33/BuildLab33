@@ -10,8 +10,8 @@ class LoginRequest(BaseModel):
 
 
 class TwoFALoginRequest(BaseModel):
-    """Second step of login when 2FA is enabled."""
-    temp_token: str
+    """Second step of login when 2FA is enabled. Also used for enable/disable 2FA (temp_token optional there)."""
+    temp_token: Optional[str] = None
     code: str = Field(min_length=6, max_length=6)
 
 
