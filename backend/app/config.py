@@ -26,8 +26,8 @@ class Settings(BaseSettings):
     # JWT
     jwt_secret: str = "change-me-in-production"
     jwt_algorithm: str = "HS256"
-    jwt_access_ttl_minutes: int = 60 * 24
-    jwt_refresh_ttl_days: int = 30
+    jwt_access_ttl_minutes: int = 15
+    jwt_refresh_ttl_days: int = 7
 
     # Anthropic
     anthropic_api_key: str = ""
