@@ -1,11 +1,13 @@
 import { create } from "zustand";
 
-interface User {
+export interface User {
   id: string;
   email: string;
+  username: string | null;
   name: string;
   role: string;
   theme: string;
+  totp_enabled: boolean;
 }
 
 interface AuthState {
