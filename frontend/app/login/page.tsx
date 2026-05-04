@@ -3,6 +3,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { login } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,7 +22,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const res = await login(email, password);
-      const { user, access_token, refresh_token } = res.data;
+      const { access_token, refresh_token, user } = res.data;
       setAuth(user, access_token, refresh_token);
       router.push("/dashboard");
     } catch (err: unknown) {
@@ -30,66 +34,48 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{
-      minHeight: "100vh",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      background: "#f7f8fa",
-    }}>
-      <div className="card" style={{ width: 380 }}>
-        <div style={{ marginBottom: 32, textAlign: "center" }}>
-          <div style={{
-            width: 48, height: 48, borderRadius: 12,
-            background: "#6366f1", margin: "0 auto 16px",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            color: "white", fontSize: 24, fontWeight: 700,
-          }}>C</div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>COP Platform</h1>
-          <p style={{ color: "#6b7280", fontSize: 14, marginTop: 4 }}>Sign in to your account</p>
+    <div className="min-h-screen bg-base flex items-center justify-center p-4">
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-8">
+          <div className="w-12 h-12 rounded-xl gradient-brand mx-auto mb-4" />
+          <h1 className="text-xl font-bold text-text-primary">COP Platform</h1>
+          <p className="text-xs text-text-muted mt-1">Sign in to continue</p>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: 16 }}>
-            <label className="form-label">Email</label>
-            <input
-              className="form-input"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              required
-            />
-          </div>
-          <div style={{ marginBottom: 24 }}>
-            <label className="form-label">Password</label>
-            <input
-              className="form-input"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-            />
-          </div>
-
-          {error && (
-            <div style={{
-              background: "#fef2f2", color: "#dc2626",
-              padding: "10px 14px", borderRadius: 8,
-              fontSize: 13, marginBottom: 16,
-            }}>{error}</div>
-          )}
-
-          <button
-            className="btn-primary"
-            type="submit"
-            disabled={loading}
-            style={{ width: "100%" }}
-          >
-            {loading ? "Signing in..." : "Sign in"}
-          </button>
-        </form>
+        <Card>
+          <CardContent className="p-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+              {error && (
+                <p className="text-xs text-error">{error}</p>
+              )}
+              <Button type="submit" disabled={loading} className="w-full">
+                {loading ? "Signing in..." : "Sign in"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

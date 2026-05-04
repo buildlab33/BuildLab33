@@ -21,3 +21,5 @@ build/
 .pytest_cache/
 .vscode/
 .idea/
+.superpowers/
+.worktrees/

@@ -1,30 +1,27 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Sidebar from "@/components/Sidebar";
-import { useAuthStore } from "@/store/auth";
 import { getMe } from "@/lib/api";
+import { useAuthStore } from "@/store/auth";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { LoadingScreen } from "@/components/layout/LoadingScreen";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const { user, setAuth, loadFromStorage } = useAuthStore();
-  const [mounted, setMounted] = useState(false);
+  const { setAuth, loadFromStorage } = useAuthStore();
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     const init = async () => {
       loadFromStorage();
       const token = localStorage.getItem("access_token");
-      if (!token) {
-        router.push("/login");
-        return;
-      }
+      if (!token) { router.push("/login"); return; }
       try {
         const res = await getMe();
-        const u = res.data;
-        setAuth(u, token, localStorage.getItem("refresh_token") || "");
-      } catch (err) {
+        setAuth(res.data, token, localStorage.getItem("refresh_token") ?? "");
+      } catch {
         router.push("/login");
       } finally {
         setLoading(false);
@@ -33,21 +30,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     init();
   }, [router, setAuth, loadFromStorage]);
 
-  if (!mounted || loading) {
-    return (
-      <div style={{ display: "flex", minHeight: "100vh", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>⊞</div>
-          <div style={{ color: "#6b7280" }}>Loading...</div>
-        </div>
-      </div>
-    );
-  }
+  if (!mounted || loading) return <LoadingScreen />;
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
+    <div className="flex min-h-screen bg-base">
       <Sidebar />
-      <main style={{ flex: 1, padding: 32, overflowY: "auto" }}>
+      <main className="flex-1 p-6 overflow-auto">
         {children}
       </main>
     </div>
