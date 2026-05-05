@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { acceptInvite, checkUsername, getMe } from "@/lib/api";
+import { acceptInvite, acceptInviteCode, checkUsername, getMe } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 import { checkPasswordPolicy, isPasswordValid } from "@/lib/passwordPolicy";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ function AcceptInviteForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token") ?? "";
+  const code = searchParams.get("code") ?? "";
   const setAuth = useAuthStore((s) => s.setAuth);
 
   const [name, setName] = useState("");
@@ -40,8 +41,8 @@ function AcceptInviteForm() {
     password === confirm;
 
   useEffect(() => {
-    if (!token) router.push("/login");
-  }, [token, router]);
+    if (!token && !code) router.push("/login");
+  }, [token, code, router]);
 
   const checkAvailability = useCallback(
     debounce(async (value: string) => {
@@ -69,7 +70,9 @@ function AcceptInviteForm() {
     setError("");
     setLoading(true);
     try {
-      const res = await acceptInvite(token, username, password, name);
+      const res = code
+        ? await acceptInviteCode(code, username, password, name)
+        : await acceptInvite(token, username, password, name);
       const { access_token, refresh_token } = res.data;
       localStorage.setItem("access_token", access_token);
       localStorage.setItem("refresh_token", refresh_token);

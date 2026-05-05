@@ -90,6 +90,13 @@ export const acceptInvite = (
   name: string
 ) => api.post("/api/auth/accept-invite", { token, username, password, name });
 
+export const acceptInviteCode = (
+  code: string,
+  username: string,
+  password: string,
+  name: string
+) => api.post("/api/auth/accept-invite-code", { token: code, username, password, name });
+
 export const setup2FA = () => api.post("/api/auth/2fa/setup");
 
 export const enable2FA = (code: string) =>

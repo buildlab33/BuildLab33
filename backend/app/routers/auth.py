@@ -471,3 +471,40 @@ async def accept_invite(body: AcceptInviteRequest):
         access_token=create_access_token(user["id"], user["role"]),
         refresh_token=create_refresh_token(user["id"]),
     )
+
+
+@router.post("/accept-invite-code", response_model=TokenPair)
+async def accept_invite_code(body: AcceptInviteRequest):
+    """Accept an invite code: set name, username, password, return tokens."""
+    try:
+        validate_password(body.password)
+    except PasswordError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    sb = get_supabase()
+    now = datetime.now(timezone.utc).isoformat()
+    res = sb.table("invite_codes").select("*").eq("code", body.token).eq("used", False).execute()
+    if not res.data:
+        raise HTTPException(status_code=400, detail="Invalid or expired invite code")
+    invite = res.data[0]
+    if invite["expires_at"] < now:
+        raise HTTPException(status_code=400, detail="Invite code has expired")
+    if sb.table("users").select("id").eq("username", body.username).execute().data:
+        raise HTTPException(status_code=400, detail="Username already taken")
+
+    sb.table("invite_codes").update({"used": True}).eq("id", invite["id"]).execute()
+    insert = sb.table("users").insert({
+        "name": body.name,
+        "username": body.username,
+        "email": f"{body.username}@invited.local",
+        "password_hash": hash_password(body.password),
+        "role": invite["role"],
+        "theme": "midnight",
+    }).execute()
+    if not insert.data:
+        raise HTTPException(status_code=500, detail="Failed to create account")
+    user = insert.data[0]
+    return TokenPair(
+        access_token=create_access_token(user["id"], user["role"]),
+        refresh_token=create_refresh_token(user["id"]),
+    )
