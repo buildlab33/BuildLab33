@@ -100,8 +100,59 @@ export const disable2FA = (code: string) =>
 
 // ── Brands ────────────────────────────────────────────────────────────────
 
-export const getBrands = () => api.get("/api/brands");
-export const getBrand = (id: string) => api.get(`/api/brands/${id}`);
+export interface BrandPublic {
+  id: string;
+  name: string;
+  industry: string;
+  logo_url: string | null;
+  brand_colour: string;
+  default_timezone: string;
+  status: "active" | "archived";
+}
+
+export interface BrandDetail extends BrandPublic {
+  content_pillars: Array<{ name: string; description: string }>;
+  hashtag_sets: Array<{ platform: string; tags: string[] }>;
+  voice_config: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InterviewAnswer {
+  question_index: number;
+  question: string;
+  answer: string;
+}
+
+export const getBrands = (includeArchived = false) =>
+  api.get("/api/brands", { params: { include_archived: includeArchived } });
+
+export const getBrand = (id: string) => api.get<BrandDetail>(`/api/brands/${id}`);
+
+export const createBrand = (data: {
+  name: string;
+  industry: string;
+  brand_colour: string;
+  default_timezone: string;
+  content_pillars: Array<{ name: string; description: string }>;
+  hashtag_sets: Array<{ platform: string; tags: string[] }>;
+  voice_config?: Record<string, unknown>;
+}) => api.post("/api/brands", data);
+
+export const updateBrand = (id: string, data: Partial<BrandDetail>) =>
+  api.patch(`/api/brands/${id}`, data);
+
+export const archiveBrand = (id: string) => api.post(`/api/brands/${id}/archive`);
+export const restoreBrand = (id: string) => api.post(`/api/brands/${id}/restore`);
+
+export const getInterviewQuestions = () => api.get("/api/brands/interview-questions");
+
+export const generateVoiceConfig = (data: {
+  brand_name: string;
+  industry: string;
+  interview_answers: InterviewAnswer[];
+  sample_posts: string[];
+}) => api.post("/api/brands/generate-voice-config", data);
 
 // ── Generate ──────────────────────────────────────────────────────────────
 
