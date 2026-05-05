@@ -96,3 +96,61 @@ def generate_post(req: dict[str, Any]) -> dict[str, Any]:
         "brand_name": brand["name"],
         "model": settings.anthropic_model,
     }
+
+
+async def generate_voice_config(
+    brand_name: str,
+    industry: str,
+    interview_answers: list[dict],
+    sample_posts: list[str],
+) -> dict:
+    """Use Claude to synthesise interview answers + sample posts into a brand voice config."""
+    from app.config import get_settings
+    import anthropic
+    import json
+    settings = get_settings()
+    client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+
+    qa_block = "\n".join(
+        f"Q{i+1}: {a['question']}\nA: {a['answer']}" for i, a in enumerate(interview_answers)
+    )
+    samples_block = "\n\n---\n\n".join(sample_posts) if sample_posts else "No sample posts provided."
+
+    prompt = f"""You are a brand strategist. Based on the interview answers and sample posts below, generate a structured brand voice configuration for {brand_name} ({industry}).
+
+## Interview Answers
+{qa_block}
+
+## Sample Posts
+{samples_block}
+
+Return ONLY valid JSON with this exact structure:
+{{
+  "tone_descriptors": ["list", "of", "3-6", "adjectives"],
+  "content_pillars": [
+    {{"name": "Pillar Name", "description": "One sentence description"}}
+  ],
+  "platform_rules": {{
+    "linkedin": "Specific guidance for LinkedIn posts",
+    "instagram": "Specific guidance for Instagram posts",
+    "tiktok": "Specific guidance for TikTok posts",
+    "facebook": "Specific guidance for Facebook posts",
+    "x": "Specific guidance for X/Twitter posts",
+    "youtube": "Specific guidance for YouTube posts"
+  }},
+  "word_bank": ["list", "of", "10-20", "brand-appropriate", "words"],
+  "avoid": ["things", "to", "never", "say", "or", "do"],
+  "sample_prompts": ["3 example generation prompts tailored to this brand"]
+}}"""
+
+    message = client.messages.create(
+        model=settings.anthropic_model,
+        max_tokens=2048,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    text = message.content[0].text.strip()
+    # Strip markdown code fences if present
+    if text.startswith("```"):
+        lines = text.split("\n")
+        text = "\n".join(lines[1:-1] if lines[-1] == "```" else lines[1:])
+    return json.loads(text.strip())
