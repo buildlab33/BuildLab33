@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { setup2FA, enable2FA, disable2FA } from "@/lib/api";
+import { setup2FA, enable2FA, disable2FA, logoutAll } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ export default function SecurityPage() {
   const [loading, setLoading] = useState(false);
   const [disableCode, setDisableCode] = useState("");
   const [showDisable, setShowDisable] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const handleSetup = async () => {
     setLoading(true);
@@ -59,6 +60,18 @@ export default function SecurityPage() {
       toast.error("Invalid code");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLogoutAll = async () => {
+    setLoggingOut(true);
+    try {
+      await logoutAll();
+      toast.success("All other devices have been logged out");
+    } catch {
+      toast.error("Failed to log out other devices");
+    } finally {
+      setLoggingOut(false);
     }
   };
 
@@ -156,6 +169,18 @@ export default function SecurityPage() {
               </Button>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card className="max-w-lg mt-4">
+        <CardHeader><CardTitle>Sessions</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-xs text-text-secondary">
+            Log out all other devices and browsers where your account is currently signed in.
+          </p>
+          <Button variant="ghost" disabled={loggingOut} onClick={handleLogoutAll}>
+            {loggingOut ? "Logging out..." : "Log out all other devices"}
+          </Button>
         </CardContent>
       </Card>
     </div>
