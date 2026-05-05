@@ -32,6 +32,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       try {
         const res = await getMe();
         setAuth(res.data, token, localStorage.getItem("refresh_token") ?? "");
+        // Apply user's DB theme
+        if (res.data.theme === "day" || res.data.theme === "night") {
+          localStorage.setItem("theme", res.data.theme);
+          document.documentElement.setAttribute("data-theme", res.data.theme);
+        }
       } catch {
         router.push("/login");
       } finally {

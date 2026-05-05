@@ -5,34 +5,33 @@ type Theme = "night" | "day";
 
 interface ThemeContextValue {
   theme: Theme;
-  toggleTheme: () => void;
+  setTheme: (theme: Theme) => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
   theme: "night",
-  toggleTheme: () => {},
+  setTheme: () => {},
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("night");
+  const [theme, setThemeState] = useState<Theme>("night");
 
   useEffect(() => {
     const stored = localStorage.getItem("theme") as Theme | null;
     if (stored === "day" || stored === "night") {
-      setTheme(stored);
+      setThemeState(stored);
       document.documentElement.setAttribute("data-theme", stored);
     }
   }, []);
 
-  const toggleTheme = () => {
-    const next: Theme = theme === "night" ? "day" : "night";
-    setTheme(next);
+  const setTheme = (next: Theme) => {
+    setThemeState(next);
     localStorage.setItem("theme", next);
     document.documentElement.setAttribute("data-theme", next);
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, setTheme }}>
       {children}
     </ThemeContext.Provider>
   );
