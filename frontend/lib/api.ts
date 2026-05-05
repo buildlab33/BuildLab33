@@ -180,3 +180,17 @@ export const getNotifications = () => api.get("/api/notifications");
 export const getUnreadCount = () => api.get("/api/notifications/unread-count");
 export const markNotificationsRead = (ids?: string[]) =>
   api.post("/api/notifications/mark-read", { ids: ids ?? null });
+
+export const getUsers = () => api.get("/api/users");
+export const inviteUser = (email: string, role: string) =>
+  api.post("/api/users/invite", { email, role });
+export const createUser = (data: { name: string; email: string; username: string; password: string; role: string }) =>
+  api.post("/api/users/create", data);
+export const generateInviteCode = (role: string) =>
+  api.post("/api/users/invite-code", { role });
+export const changeUserRole = (id: string, role: string) =>
+  api.patch(`/api/users/${id}/role`, { role });
+export const disableUser = (id: string) =>
+  api.patch(`/api/users/${id}/disable`);
+export const resendInvite = (id: string) =>
+  api.post(`/api/users/${id}/resend-invite`);
