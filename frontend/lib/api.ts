@@ -175,3 +175,8 @@ export const changePassword = (data: { current_password: string; new_password: s
   api.post("/api/auth/change-password", data);
 
 export const logoutAll = () => api.post("/api/auth/logout-all");
+
+export const getNotifications = () => api.get("/api/notifications");
+export const getUnreadCount = () => api.get("/api/notifications/unread-count");
+export const markNotificationsRead = (ids?: string[]) =>
+  api.post("/api/notifications/mark-read", { ids: ids ?? null });
