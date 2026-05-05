@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-from app.routers import auth, brands, generate
+from app.routers import auth, brands, generate, notifications
 
 
 @asynccontextmanager
@@ -46,6 +46,7 @@ def create_app() -> FastAPI:
     app.include_router(auth.router, prefix=settings.api_prefix)
     app.include_router(brands.router, prefix=settings.api_prefix)
     app.include_router(generate.router, prefix=settings.api_prefix)
+    app.include_router(notifications.router, prefix=settings.api_prefix)
     return app
 
 
