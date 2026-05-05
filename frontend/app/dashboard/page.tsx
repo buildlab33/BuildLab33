@@ -8,7 +8,14 @@ import { Button } from "@/components/ui/button";
 import { BrandBadge } from "@/components/domain/BrandBadge";
 import { PageHeader } from "@/components/layout/PageHeader";
 
-interface Brand { id: string; name: string; industry: string; }
+interface Brand {
+  id: string;
+  name: string;
+  industry: string;
+  brand_colour?: string;
+  logo_url?: string | null;
+  status?: string;
+}
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -16,7 +23,7 @@ export default function DashboardPage() {
   const [brands, setBrands] = useState<Brand[]>([]);
 
   useEffect(() => {
-    getBrands().then((res) => setBrands(res.data?.brands || res.data || [])).catch(() => {});
+    getBrands().then((res) => setBrands(res.data?.brands || [])).catch(() => {});
   }, []);
 
   const greeting = () => {
@@ -65,9 +72,16 @@ export default function DashboardPage() {
             onClick={() => router.push(`/dashboard/generate?brand=${brand.id}`)}
           >
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-base bg-primary">
-                {brand.name[0]}
-              </div>
+              {brand.logo_url ? (
+                <img src={brand.logo_url} alt={brand.name} className="w-8 h-8 rounded-lg object-cover" />
+              ) : (
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm"
+                  style={{ backgroundColor: brand.brand_colour || "#6366f1" }}
+                >
+                  {brand.name[0]?.toUpperCase() || "B"}
+                </div>
+              )}
               <div>
                 <div className="font-bold text-text-primary">{brand.name}</div>
                 <div className="text-xs text-text-muted">{brand.industry}</div>
