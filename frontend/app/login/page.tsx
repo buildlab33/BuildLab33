@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { login } from "@/lib/api";
+import { login, getMe } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 export default function LoginPage() {
   const router = useRouter();
   const setAuth = useAuthStore((s) => s.setAuth);
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -21,13 +21,28 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      const res = await login(email, password);
-      const { access_token, refresh_token, user } = res.data;
-      setAuth(user, access_token, refresh_token);
+      const res = await login(username, password);
+      const data = res.data;
+
+      // 2FA required
+      if (data.requires_2fa) {
+        sessionStorage.setItem("2fa_temp_token", data.temp_token);
+        router.push("/login/2fa");
+        return;
+      }
+
+      // Normal login — fetch user profile
+      const { access_token, refresh_token } = data;
+      localStorage.setItem("access_token", access_token);
+      localStorage.setItem("refresh_token", refresh_token);
+      const meRes = await getMe();
+      setAuth(meRes.data, access_token, refresh_token);
       router.push("/dashboard");
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      setError(msg || "Invalid email or password");
+      const msg =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
+        "Invalid username or password";
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -46,13 +61,14 @@ export default function LoginPage() {
           <CardContent className="p-6">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="username">Username</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="your_username"
+                  autoComplete="username"
                   required
                 />
               </div>
@@ -64,15 +80,22 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
+                  autoComplete="current-password"
                   required
                 />
               </div>
-              {error && (
-                <p className="text-xs text-error">{error}</p>
-              )}
+              {error && <p className="text-xs text-error">{error}</p>}
               <Button type="submit" disabled={loading} className="w-full">
                 {loading ? "Signing in..." : "Sign in"}
               </Button>
+              <div className="text-center">
+                <a
+                  href="/forgot-password"
+                  className="text-xs text-text-muted hover:text-text-active transition-colors"
+                >
+                  Forgot password?
+                </a>
+              </div>
             </form>
           </CardContent>
         </Card>
