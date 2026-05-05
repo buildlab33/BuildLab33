@@ -165,3 +165,13 @@ export const generatePost = (payload: {
   growth_angle?: string;
   news_hook?: string;
 }) => api.post("/api/generate", payload);
+
+// ── Settings ──────────────────────────────────────────────────────────────
+
+export const updateMe = (data: { name?: string; email?: string; preferences?: Record<string, unknown> }) =>
+  api.patch("/api/auth/me", data);
+
+export const changePassword = (data: { current_password: string; new_password: string; confirm_password: string }) =>
+  api.post("/api/auth/change-password", data);
+
+export const logoutAll = () => api.post("/api/auth/logout-all");
