@@ -66,7 +66,10 @@ export function Sidebar() {
   const handleBellClick = async () => {
     if (!panelOpen) {
       const res = await getNotifications().catch(() => ({ data: [] }));
-      setNotifications(res.data);
+      const sorted = [...(res.data as typeof notifications)].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      setNotifications(sorted);
     }
     setPanelOpen((prev) => !prev);
   };
