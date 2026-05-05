@@ -219,8 +219,18 @@ async def logout_all(user: Annotated[dict, Depends(current_user)]):
     """Invalidate all sessions for this user by bumping token_version."""
     sb = get_supabase()
     res = sb.table("users").select("token_version").eq("id", user["sub"]).limit(1).execute()
-    current_version = res.data[0].get("token_version") or 0 if res.data else 0
+    if not res.data:
+        raise HTTPException(status_code=404, detail="User not found")
+    current_version = res.data[0].get("token_version") or 0
     sb.table("users").update({"token_version": current_version + 1}).eq("id", user["sub"]).execute()
+    try:
+        sb.table("audit_log").insert({
+            "user_id": user["sub"],
+            "action": "logout_all",
+            "detail": "All other sessions invalidated",
+        }).execute()
+    except Exception:
+        pass
     return {"message": "All other sessions have been logged out"}
 
 
