@@ -82,3 +82,15 @@ class UserPublic(BaseModel):
     role: Literal["super_admin", "admin", "user", "guest"]
     theme: str = "midnight"
     totp_enabled: bool = False
+
+
+class UpdateMeRequest(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=120)
+    email: Optional[EmailStr] = None
+    preferences: Optional[dict] = None
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(min_length=8, max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)
+    confirm_password: str = Field(min_length=8, max_length=128)

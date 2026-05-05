@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from app.database import get_supabase
 from app.schemas.auth import (
     AcceptInviteRequest,
+    ChangePasswordRequest,
     ForgotPasswordRequest,
     LoginRequest,
     RefreshRequest,
@@ -16,6 +17,7 @@ from app.schemas.auth import (
     TokenPair,
     TwoFALoginRequest,
     TwoFAPendingResponse,
+    UpdateMeRequest,
     UserPublic,
 )
 from app.security import (
@@ -161,6 +163,65 @@ async def me(user: Annotated[dict, Depends(current_user)]):
     if not res.data:
         raise HTTPException(status_code=404, detail="User not found")
     return UserPublic(**res.data[0])
+
+
+@router.patch("/me")
+async def update_me(body: UpdateMeRequest, user: Annotated[dict, Depends(current_user)]):
+    """Update name, email, and/or preferences for the current user."""
+    sb = get_supabase()
+    updates: dict = {}
+    if body.name is not None:
+        updates["name"] = body.name
+    if body.email is not None:
+        existing = sb.table("users").select("id").eq("email", str(body.email)).neq("id", user["sub"]).execute()
+        if existing.data:
+            raise HTTPException(status_code=400, detail="Email already in use")
+        updates["email"] = str(body.email)
+    if body.preferences is not None:
+        res = sb.table("users").select("preferences").eq("id", user["sub"]).limit(1).execute()
+        existing_prefs = res.data[0].get("preferences") or {} if res.data else {}
+        updates["preferences"] = {**existing_prefs, **body.preferences}
+    if not updates:
+        raise HTTPException(status_code=400, detail="Nothing to update")
+    sb.table("users").update(updates).eq("id", user["sub"]).execute()
+    return {"message": "Updated"}
+
+
+@router.post("/change-password")
+async def change_password(body: ChangePasswordRequest, user: Annotated[dict, Depends(current_user)]):
+    """Change password — requires current password verification."""
+    if body.new_password != body.confirm_password:
+        raise HTTPException(status_code=400, detail="Passwords do not match")
+    try:
+        validate_password(body.new_password)
+    except PasswordError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    sb = get_supabase()
+    res = sb.table("users").select("password_hash").eq("id", user["sub"]).limit(1).execute()
+    if not res.data:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not verify_password(body.current_password, res.data[0]["password_hash"]):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    sb.table("users").update({"password_hash": hash_password(body.new_password)}).eq("id", user["sub"]).execute()
+    try:
+        sb.table("audit_log").insert({
+            "user_id": user["sub"],
+            "action": "password_changed",
+            "detail": "Password changed from settings",
+        }).execute()
+    except Exception:
+        pass
+    return {"message": "Password updated"}
+
+
+@router.post("/logout-all")
+async def logout_all(user: Annotated[dict, Depends(current_user)]):
+    """Invalidate all sessions for this user by bumping token_version."""
+    sb = get_supabase()
+    res = sb.table("users").select("token_version").eq("id", user["sub"]).limit(1).execute()
+    current_version = res.data[0].get("token_version") or 0 if res.data else 0
+    sb.table("users").update({"token_version": current_version + 1}).eq("id", user["sub"]).execute()
+    return {"message": "All other sessions have been logged out"}
 
 
 # ── Signup (direct account creation) ─────────────────────────────────────────
