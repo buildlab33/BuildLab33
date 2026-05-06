@@ -91,6 +91,8 @@ async def update_post(post_id: str, body: PostUpdate, user: Annotated[dict, Depe
             raise HTTPException(status_code=400, detail=f"Cannot edit a post with status '{post['status']}'")
     now = datetime.now(timezone.utc).isoformat()
     updated = sb.table("posts").update({"text": body.text, "updated_at": now}).eq("id", post_id).execute()
+    if not updated.data:
+        raise HTTPException(status_code=500, detail="Update failed or row no longer accessible")
     return updated.data[0]
 
 
@@ -108,6 +110,8 @@ async def submit_post(post_id: str, user: Annotated[dict, Depends(current_user)]
         raise HTTPException(status_code=400, detail=f"Only drafts can be submitted (current: {post['status']})")
     now = datetime.now(timezone.utc).isoformat()
     updated = sb.table("posts").update({"status": "pending", "updated_at": now}).eq("id", post_id).execute()
+    if not updated.data:
+        raise HTTPException(status_code=500, detail="Update failed or row no longer accessible")
     return updated.data[0]
 
 
@@ -125,6 +129,8 @@ async def approve_post(post_id: str, user: Annotated[dict, Depends(current_user)
         raise HTTPException(status_code=400, detail=f"Cannot approve from status '{post['status']}'")
     now = datetime.now(timezone.utc).isoformat()
     updated = sb.table("posts").update({"status": "approved", "rejection_reason": None, "updated_at": now}).eq("id", post_id).execute()
+    if not updated.data:
+        raise HTTPException(status_code=500, detail="Update failed or row no longer accessible")
     return updated.data[0]
 
 
@@ -142,6 +148,8 @@ async def reject_post(post_id: str, body: RejectRequest, user: Annotated[dict, D
         raise HTTPException(status_code=400, detail=f"Cannot reject from status '{post['status']}'")
     now = datetime.now(timezone.utc).isoformat()
     updated = sb.table("posts").update({"status": "rejected", "rejection_reason": body.reason, "updated_at": now}).eq("id", post_id).execute()
+    if not updated.data:
+        raise HTTPException(status_code=500, detail="Update failed or row no longer accessible")
     return updated.data[0]
 
 
