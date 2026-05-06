@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import { getBrands, generatePost } from "@/lib/api";
+import { useRouter, useSearchParams } from "next/navigation";
+import { getBrands, generatePost, createPost } from "@/lib/api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,7 @@ import { BrandBadge } from "@/components/domain/BrandBadge";
 import { PlatformPill } from "@/components/domain/PlatformPill";
 import { CharacterCounter } from "@/components/domain/CharacterCounter";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { toast } from "@/components/ui/toast";
 
 interface Brand { id: string; name: string; }
 
@@ -41,6 +42,8 @@ function GenerateForm() {
   const [result, setResult] = useState<{ text: string; platform: string; brand_id: string } | null>(null);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const router = useRouter();
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     getBrands().then((res) => {
@@ -81,6 +84,29 @@ function GenerateForm() {
     }
   };
 
+  const handleSave = async (submitImmediately: boolean) => {
+    if (!result) return;
+    setSaving(true);
+    try {
+      await createPost({
+        brand_id: result.brand_id,
+        platform: result.platform,
+        text: result.text,
+        status: submitImmediately ? "pending" : "draft",
+        campaign_goal: goal || undefined,
+        audience: audience || undefined,
+        content_format: format || undefined,
+        growth_angle: angle || undefined,
+      });
+      toast.success(submitImmediately ? "Post submitted for approval" : "Post saved as draft");
+      router.push("/dashboard/posts");
+    } catch {
+      toast.error("Failed to save post. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const selectedBrand = brands.find((b) => b.id === brandId);
   const resultCharCount = result?.text.length ?? 0;
   const platformLimit = PLATFORM_LIMITS[platform] ?? 3000;
@@ -100,7 +126,8 @@ function GenerateForm() {
               <Label htmlFor="brand-select">Brand</Label>
               <select
                 id="brand-select"
-                className="mt-1 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text-primary outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2 pr-8 text-sm text-text-primary outline-none focus:border-primary focus:ring-1 focus:ring-primary appearance-none"
+                style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center" }}
                 value={brandId}
                 onChange={(e) => setBrandId(e.target.value)}
                 required
@@ -211,9 +238,23 @@ function GenerateForm() {
               <div className="bg-elevated rounded-lg p-4 text-sm leading-relaxed whitespace-pre-wrap min-h-[200px] text-text-primary">
                 {result.text}
               </div>
-              <div className="mt-4 flex gap-2">
-                <Button className="flex-1 text-xs">
-                  ✓ Approve &amp; Save
+              <div className="mt-4 flex gap-2 flex-wrap">
+                <Button
+                  className="text-xs"
+                  onClick={() => handleSave(false)}
+                  disabled={saving}
+                >
+                  {saving ? "Saving..." : "Save as Draft"}
+                </Button>
+                <Button
+                  className="text-xs"
+                  onClick={() => handleSave(true)}
+                  disabled={saving}
+                >
+                  {saving ? "Saving..." : "Submit for Approval"}
+                </Button>
+                <Button variant="ghost" onClick={handleCopy} className="text-xs">
+                  {copied ? "✓ Copied" : "Copy"}
                 </Button>
                 <Button variant="ghost" onClick={handleGenerate} className="text-xs">
                   Regenerate
