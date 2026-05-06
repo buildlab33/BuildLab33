@@ -106,8 +106,8 @@ async def submit_post(post_id: str, user: Annotated[dict, Depends(current_user)]
     post = res.data[0]
     if post["created_by"] != user["sub"] and user.get("role") != "super_admin":
         raise HTTPException(status_code=403, detail="Access denied")
-    if post["status"] != "draft":
-        raise HTTPException(status_code=400, detail=f"Only drafts can be submitted (current: {post['status']})")
+    if post["status"] not in {"draft", "rejected"}:
+        raise HTTPException(status_code=400, detail=f"Only draft or rejected posts can be submitted (current: {post['status']})")
     now = datetime.now(timezone.utc).isoformat()
     updated = sb.table("posts").update({"status": "pending", "updated_at": now}).eq("id", post_id).execute()
     if not updated.data:

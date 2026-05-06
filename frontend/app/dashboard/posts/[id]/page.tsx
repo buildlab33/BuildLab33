@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   getPost, updatePost, submitPost, approvePost, rejectPost,
-  PostItem,
+  PostItem, getBrands, BrandPublic,
 } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 import { Card } from "@/components/ui/card";
@@ -20,12 +20,15 @@ export default function PostDetailPage() {
   const user = useAuthStore((s) => s.user);
 
   const [post, setPost] = useState<PostItem | null>(null);
+  const [brands, setBrands] = useState<BrandPublic[]>([]);
   const [loading, setLoading] = useState(true);
   const [editText, setEditText] = useState("");
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [actioning, setActioning] = useState(false);
+
+  const getBrandName = (id: string) => brands.find((b) => b.id === id)?.name ?? id;
 
   useEffect(() => {
     getPost(id)
@@ -36,6 +39,13 @@ export default function PostDetailPage() {
       .catch(() => toast.error("Post not found"))
       .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    getBrands().then((res) => {
+      const data = res.data?.brands || res.data || [];
+      setBrands(data);
+    }).catch(() => {});
+  }, []);
 
   const isAdmin = user?.role === "admin" || user?.role === "super_admin";
   const isSuperAdmin = user?.role === "super_admin";
@@ -130,7 +140,7 @@ export default function PostDetailPage() {
 
       {/* Meta row */}
       <div className="flex gap-2 items-center mb-6 flex-wrap">
-        <BrandBadge brandId={post.brand_id} brandName={post.brand_id} />
+        <BrandBadge brandId={post.brand_id} brandName={getBrandName(post.brand_id)} />
         <Badge>{post.platform}</Badge>
         <StatusBadge status={post.status} />
       </div>

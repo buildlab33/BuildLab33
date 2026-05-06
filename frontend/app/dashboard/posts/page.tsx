@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { getPosts, submitPost, deletePost, PostItem } from "@/lib/api";
+import { getPosts, submitPost, deletePost, PostItem, getBrands, BrandPublic } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,9 +17,12 @@ export default function PostsPage() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const [posts, setPosts] = useState<PostItem[]>([]);
+  const [brands, setBrands] = useState<BrandPublic[]>([]);
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  const getBrandName = (id: string) => brands.find((b) => b.id === id)?.name ?? id;
 
   const loadPosts = useCallback(async () => {
     setLoading(true);
@@ -37,6 +40,13 @@ export default function PostsPage() {
   useEffect(() => {
     loadPosts();
   }, [loadPosts]);
+
+  useEffect(() => {
+    getBrands().then((res) => {
+      const data = res.data?.brands || res.data || [];
+      setBrands(data);
+    }).catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.MouseEvent, post: PostItem) => {
     e.stopPropagation();
@@ -112,7 +122,7 @@ export default function PostsPage() {
             >
               <div className="flex justify-between items-start mb-3">
                 <div className="flex gap-2 items-center flex-wrap">
-                  <BrandBadge brandId={post.brand_id} brandName={post.brand_id} />
+                  <BrandBadge brandId={post.brand_id} brandName={getBrandName(post.brand_id)} />
                   <Badge>{post.platform}</Badge>
                 </div>
                 <div className="flex items-center gap-2">
