@@ -201,3 +201,56 @@ export const disableUser = (id: string) =>
   api.patch(`/api/users/${id}/disable`);
 export const resendInvite = (id: string) =>
   api.post(`/api/users/${id}/resend-invite`);
+
+// ── Posts ─────────────────────────────────────────────────────────────────
+
+export type PostStatus = "draft" | "pending" | "approved" | "scheduled" | "published" | "rejected";
+
+export interface PostItem {
+  id: string;
+  brand_id: string;
+  created_by: string | null;
+  platform: string;
+  text: string;
+  status: PostStatus;
+  campaign_goal: string | null;
+  audience: string | null;
+  content_format: string | null;
+  growth_angle: string | null;
+  rejection_reason: string | null;
+  scheduled_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export const getPosts = (params?: { status?: string; brand_id?: string }) =>
+  api.get<PostItem[]>("/api/posts", { params });
+
+export const getPost = (id: string) =>
+  api.get<PostItem>(`/api/posts/${id}`);
+
+export const createPost = (data: {
+  brand_id: string;
+  platform: string;
+  text: string;
+  status: "draft" | "pending";
+  campaign_goal?: string;
+  audience?: string;
+  content_format?: string;
+  growth_angle?: string;
+}) => api.post<PostItem>("/api/posts", data);
+
+export const updatePost = (id: string, text: string) =>
+  api.patch<PostItem>(`/api/posts/${id}`, { text });
+
+export const submitPost = (id: string) =>
+  api.post<PostItem>(`/api/posts/${id}/submit`);
+
+export const approvePost = (id: string) =>
+  api.post<PostItem>(`/api/posts/${id}/approve`);
+
+export const rejectPost = (id: string, reason: string) =>
+  api.post<PostItem>(`/api/posts/${id}/reject`, { reason });
+
+export const deletePost = (id: string) =>
+  api.delete(`/api/posts/${id}`);
