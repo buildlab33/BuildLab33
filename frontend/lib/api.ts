@@ -254,3 +254,12 @@ export const rejectPost = (id: string, reason: string) =>
 
 export const deletePost = (id: string) =>
   api.delete(`/api/posts/${id}`);
+
+export const schedulePost = (id: string, scheduled_at: string) =>
+  api.post<PostItem>(`/api/posts/${id}/schedule`, { scheduled_at });
+
+export const unschedulePost = (id: string) =>
+  api.post<PostItem>(`/api/posts/${id}/unschedule`);
+
+export const reschedulePost = (id: string, scheduled_at: string) =>
+  api.patch<PostItem>(`/api/posts/${id}/reschedule`, { scheduled_at });
