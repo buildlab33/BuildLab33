@@ -71,20 +71,20 @@ export default function DashboardPage() {
             clickable
             onClick={() => router.push(`/dashboard/generate?brand=${brand.id}`)}
           >
-            <div className="flex items-center gap-3 mb-3">
+            <div className="flex items-center gap-3 mb-4">
               {brand.logo_url ? (
-                <img src={brand.logo_url} alt={brand.name} className="w-8 h-8 rounded-lg object-cover" />
+                <img src={brand.logo_url} alt={brand.name} className="w-10 h-10 rounded-md object-cover flex-shrink-0" />
               ) : (
                 <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm"
+                  className="w-10 h-10 rounded-md flex-shrink-0 flex items-center justify-center text-white font-bold text-sm leading-none"
                   style={{ backgroundColor: brand.brand_colour || "#6366f1" }}
                 >
                   {brand.name[0]?.toUpperCase() || "B"}
                 </div>
               )}
-              <div>
-                <div className="font-bold text-text-primary">{brand.name}</div>
-                <div className="text-xs text-text-muted">{brand.industry}</div>
+              <div className="min-w-0">
+                <div className="font-bold text-text-primary text-sm truncate">{brand.name}</div>
+                <div className="text-xs text-text-muted truncate">{brand.industry}</div>
               </div>
             </div>
             <Button

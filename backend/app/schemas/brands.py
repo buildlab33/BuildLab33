@@ -1,6 +1,6 @@
 """Pydantic schemas for brand endpoints."""
 from typing import Any, Literal, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class ContentPillar(BaseModel):
@@ -49,6 +49,13 @@ class BrandDetail(BrandPublic):
     voice_config: dict[str, Any] = {}
     created_at: str
     updated_at: str
+
+    @field_validator("content_pillars", "hashtag_sets", mode="before")
+    @classmethod
+    def coerce_to_list(cls, v: Any) -> list:
+        if isinstance(v, dict):
+            return []
+        return v or []
 
 
 class InterviewAnswer(BaseModel):

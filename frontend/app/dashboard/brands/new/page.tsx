@@ -20,9 +20,21 @@ type Step = "basic" | "interview" | "samples" | "preview";
 interface Question { index: number; question: string; }
 
 const TIMEZONES = [
-  "Asia/Singapore", "Asia/Kuala_Lumpur", "Asia/Bangkok", "Asia/Jakarta",
-  "Asia/Tokyo", "Asia/Hong_Kong", "Asia/Seoul", "Australia/Sydney",
-  "Europe/London", "America/New_York", "America/Los_Angeles", "UTC",
+  { value: "UTC", label: "(UTC+00:00) UTC" },
+  { value: "Europe/London", label: "(UTC+00:00) London" },
+  { value: "Europe/Paris", label: "(UTC+01:00) Paris, Berlin, Rome" },
+  { value: "Asia/Dubai", label: "(UTC+04:00) Dubai, Abu Dhabi" },
+  { value: "Asia/Kolkata", label: "(UTC+05:30) Mumbai, New Delhi" },
+  { value: "Asia/Bangkok", label: "(UTC+07:00) Bangkok, Jakarta, Hanoi" },
+  { value: "Asia/Singapore", label: "(UTC+08:00) Kuala Lumpur, Singapore" },
+  { value: "Asia/Kuala_Lumpur", label: "(UTC+08:00) Kuala Lumpur" },
+  { value: "Asia/Hong_Kong", label: "(UTC+08:00) Hong Kong, Beijing" },
+  { value: "Asia/Seoul", label: "(UTC+09:00) Seoul" },
+  { value: "Asia/Tokyo", label: "(UTC+09:00) Osaka, Sapporo, Tokyo" },
+  { value: "Australia/Sydney", label: "(UTC+10:00) Sydney, Melbourne" },
+  { value: "Pacific/Auckland", label: "(UTC+12:00) Auckland, Wellington" },
+  { value: "America/Los_Angeles", label: "(UTC-08:00) Los Angeles, Seattle" },
+  { value: "America/New_York", label: "(UTC-05:00) New York, Washington DC" },
 ];
 
 export default function NewBrandPage() {
@@ -127,16 +139,20 @@ export default function NewBrandPage() {
             </div>
             <div>
               <Label htmlFor="colour">Brand colour</Label>
-              <div className="flex items-center gap-3">
+              <div className="flex gap-3">
+                <div
+                  className="w-10 self-stretch rounded-md flex-shrink-0 cursor-pointer"
+                  style={{ backgroundColor: brandColour }}
+                  onClick={() => document.getElementById("colour-picker")?.click()}
+                />
                 <input
                   type="color"
-                  id="colour"
+                  id="colour-picker"
                   value={brandColour}
                   onChange={(e) => setBrandColour(e.target.value)}
-                  className="w-10 h-10 rounded-lg cursor-pointer border border-border bg-transparent"
+                  className="sr-only"
                 />
                 <Input value={brandColour} onChange={(e) => setBrandColour(e.target.value)} placeholder="#6366f1" className="font-mono w-32" />
-                <div className="w-8 h-8 rounded-lg" style={{ backgroundColor: brandColour }} />
               </div>
             </div>
             <div>
@@ -145,9 +161,10 @@ export default function NewBrandPage() {
                 id="timezone"
                 value={timezone}
                 onChange={(e) => setTimezone(e.target.value)}
-                className="w-full rounded-lg border border-border bg-surface text-text-primary text-sm px-3 py-2 focus:outline-none focus:border-border-active"
+                className="w-full rounded-md border border-border bg-surface text-text-primary text-sm px-3 py-2 pr-8 focus:outline-none focus:border-border-active appearance-none"
+                style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center" }}
               >
-                {TIMEZONES.map((tz) => <option key={tz} value={tz}>{tz}</option>)}
+                {TIMEZONES.map((tz) => <option key={tz.value} value={tz.value}>{tz.label}</option>)}
               </select>
             </div>
             <Button className="w-full" disabled={!canProceedBasic} onClick={() => setStep("interview")}>
