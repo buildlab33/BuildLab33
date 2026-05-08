@@ -1,4 +1,4 @@
-﻿# backend/app/routers/contacts.py
+# backend/app/routers/contacts.py
 from datetime import datetime, timezone
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
@@ -74,7 +74,7 @@ def update_contact(contact_id: str, body: ContactUpdate, user: Annotated[dict, D
     if not existing.data:
         raise HTTPException(404, "Contact not found")
     _require_write(existing.data[0], user)
-    payload = {k: v for k, v in body.model_dump().items() if v is not None}
+    payload = body.model_dump(exclude_none=True)
     payload["updated_at"] = datetime.now(timezone.utc).isoformat()
     result = sb.table("contacts").update(payload).eq("id", contact_id).execute()
     row = result.data[0]
