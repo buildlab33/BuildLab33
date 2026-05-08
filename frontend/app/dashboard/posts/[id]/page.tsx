@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   getPost, updatePost, submitPost, approvePost, rejectPost,
+  schedulePost, unschedulePost,
   PostItem, getBrands, BrandPublic,
 } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
@@ -27,6 +28,9 @@ export default function PostDetailPage() {
   const [saving, setSaving] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [actioning, setActioning] = useState(false);
+  const [schedDate, setSchedDate] = useState("");
+  const [schedTime, setSchedTime] = useState("09:00");
+  const [scheduling, setScheduling] = useState(false);
 
   const getBrandName = (id: string) => brands.find((b) => b.id === id)?.name ?? id;
 
@@ -111,6 +115,35 @@ export default function PostDetailPage() {
       toast.error("Failed to reject post");
     } finally {
       setActioning(false);
+    }
+  };
+
+  const handleSchedule = async () => {
+    if (!post || !schedDate) return;
+    setScheduling(true);
+    try {
+      const scheduled_at = new Date(`${schedDate}T${schedTime}:00`).toISOString();
+      const res = await schedulePost(post.id, scheduled_at);
+      setPost(res.data);
+      toast.success("Post scheduled");
+    } catch {
+      toast.error("Failed to schedule post");
+    } finally {
+      setScheduling(false);
+    }
+  };
+
+  const handleUnscheduleFromDetail = async () => {
+    if (!post) return;
+    setScheduling(true);
+    try {
+      const res = await unschedulePost(post.id);
+      setPost(res.data);
+      toast.success("Post unscheduled");
+    } catch {
+      toast.error("Failed to unschedule post");
+    } finally {
+      setScheduling(false);
     }
   };
 
@@ -199,6 +232,59 @@ export default function PostDetailPage() {
             </div>
             <Button onClick={handleSubmit} disabled={actioning}>
               {actioning ? "Submitting..." : "Submit for Approval"}
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {/* Schedule card — approved posts */}
+      {post.status === "approved" && (
+        <Card className="mb-4">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <p className="text-sm font-semibold text-text-primary mb-1">Schedule this post</p>
+              <p className="text-xs text-text-muted">Pick a date and time to put it on the calendar.</p>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <input
+                type="date"
+                value={schedDate}
+                onChange={(e) => setSchedDate(e.target.value)}
+                className="rounded-md border border-border bg-elevated px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary"
+              />
+              <input
+                type="time"
+                value={schedTime}
+                onChange={(e) => setSchedTime(e.target.value)}
+                className="rounded-md border border-border bg-elevated px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary"
+              />
+              <Button onClick={handleSchedule} disabled={scheduling || !schedDate}>
+                {scheduling ? "Scheduling..." : "Schedule"}
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Scheduled info — scheduled posts */}
+      {post.status === "scheduled" && post.scheduled_at && (
+        <Card className="mb-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-text-primary mb-1">Scheduled</p>
+              <p className="text-xs text-text-muted">
+                {new Date(post.scheduled_at).toLocaleDateString(undefined, {
+                  weekday: "long", year: "numeric", month: "long", day: "numeric",
+                })} at {new Date(post.scheduled_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              className="text-xs text-error hover:text-error border border-error/30 hover:border-error/50"
+              onClick={handleUnscheduleFromDetail}
+              disabled={scheduling}
+            >
+              Unschedule
             </Button>
           </div>
         </Card>
