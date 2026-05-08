@@ -1,11 +1,11 @@
-"""FastAPI application entry point."""
+﻿"""FastAPI application entry point."""
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-from app.routers import auth, brands, generate, notifications, posts, users
+from app.routers import auth, brands, contacts, generate, notifications, posts, users
 
 
 @asynccontextmanager
@@ -49,7 +49,9 @@ def create_app() -> FastAPI:
     app.include_router(notifications.router, prefix=settings.api_prefix)
     app.include_router(posts.router, prefix=settings.api_prefix)
     app.include_router(users.router, prefix=settings.api_prefix)
+    app.include_router(contacts.router, prefix=settings.api_prefix)
     return app
 
 
 app = create_app()
+
