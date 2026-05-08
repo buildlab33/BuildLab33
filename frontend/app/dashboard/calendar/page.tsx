@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   getPosts, getBrands, schedulePost, unschedulePost, reschedulePost,
@@ -23,7 +23,10 @@ function getFirstDayOfWeek(year: number, month: number) {
 }
 
 function isoDate(date: Date) {
-  return date.toISOString().split("T")[0];
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 function isoDateTime(date: string, time: string) {
@@ -150,7 +153,7 @@ export default function CalendarPage() {
     if (post.scheduled_at) {
       const d = new Date(post.scheduled_at);
       setRescheduleDate(isoDate(d));
-      setRescheduleTime(d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false }));
+      setRescheduleTime(`${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`);
     }
   };
 
@@ -257,7 +260,7 @@ export default function CalendarPage() {
           className={`min-h-[80px] rounded-lg border p-1.5 cursor-pointer transition-colors ${
             isToday ? "border-primary/40 bg-primary-muted/10" : "border-border hover:border-elevated"
           }`}
-          onClick={() => openSchedulePanel(dateStr)}
+          onClick={(e) => { e.stopPropagation(); openSchedulePanel(dateStr); }}
         >
           <div className={`text-xs font-semibold mb-1 px-0.5 ${isToday ? "text-text-active" : "text-text-muted"}`}>
             {day}
@@ -297,7 +300,7 @@ export default function CalendarPage() {
             const ds = isoDate(d);
             const isToday = ds === todayStr;
             return (
-              <div key={i} className={`text-center text-xs py-2 font-semibold ${isToday ? "text-text-active" : "text-text-muted"}`}>
+              <div key={ds} className={`text-center text-xs py-2 font-semibold ${isToday ? "text-text-active" : "text-text-muted"}`}>
                 {WEEK_DAYS[i]}<br />
                 <span className={`text-[11px] ${isToday ? "font-bold" : "font-normal opacity-60"}`}>{d.getDate()}</span>
               </div>
@@ -305,8 +308,8 @@ export default function CalendarPage() {
           })}
           {/* Time rows */}
           {TIME_HOURS.map((hour, rowIdx) => (
-            <>
-              <div key={`label-${hour}`} className="text-[10px] text-text-muted text-right pr-2 pt-1.5">
+            <React.Fragment key={hour}>
+              <div className="text-[10px] text-text-muted text-right pr-2 pt-1.5">
                 {TIME_SLOTS[rowIdx]}
               </div>
               {weekDates.map((d, colIdx) => {
@@ -320,7 +323,7 @@ export default function CalendarPage() {
                   <div
                     key={`${hour}-${colIdx}`}
                     className="border border-border rounded min-h-[40px] p-0.5 cursor-pointer hover:border-elevated transition-colors"
-                    onClick={() => openSchedulePanel(ds)}
+                    onClick={(e) => { e.stopPropagation(); openSchedulePanel(ds); }}
                   >
                     <div onClick={(e) => e.stopPropagation()}>
                       {dayPosts.map((p) => (
@@ -341,7 +344,7 @@ export default function CalendarPage() {
                   </div>
                 );
               })}
-            </>
+            </React.Fragment>
           ))}
         </div>
       </div>
