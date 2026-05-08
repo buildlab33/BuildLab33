@@ -8,10 +8,10 @@ Platform = Literal["instagram", "linkedin", "tiktok", "youtube", "facebook", "x"
 class GenerateRequest(BaseModel):
     brand_id: str
     platform: Platform
-    content_format: str = Field(min_length=1, max_length=80)
+    content_format: str = Field(default="", max_length=80)
     campaign_goal: str = Field(min_length=1, max_length=200)
     audience: str = Field(min_length=1, max_length=200)
-    growth_angle: str = Field(min_length=1, max_length=2000)
+    growth_angle: str = Field(default="", max_length=2000)
 
 
 class GenerateResponse(BaseModel):

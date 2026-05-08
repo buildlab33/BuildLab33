@@ -37,16 +37,14 @@ Output rules:
 
 
 def _build_user_prompt(req: dict, pillars_text: str) -> str:
+    format_line = f"Content format: {req['content_format']}\n" if req.get("content_format") else ""
+    angle_line = f"Growth angle / specific insight to anchor on: {req['growth_angle']}\n" if req.get("growth_angle") else ""
+    pillars_section = f"\nAvailable content pillars to align with:\n{pillars_text}\n" if pillars_text else ""
     return f"""Write a {req['platform']} post for the following brief.
 
-Content format: {req['content_format']}
-Campaign goal: {req['campaign_goal']}
+{format_line}Campaign goal: {req['campaign_goal']}
 Target audience: {req['audience']}
-Growth angle / specific insight to anchor on: {req['growth_angle']}
-
-Available content pillars to align with:
-{pillars_text}
-
+{angle_line}{pillars_section}
 Write the post now.""".strip()
 
 
@@ -60,10 +58,11 @@ def generate_post(req: dict[str, Any]) -> dict[str, Any]:
 
     if not settings.anthropic_api_key:
         # Deterministic dev fallback so the API works end-to-end without keys
+        angle = req.get("growth_angle", "").strip()
         text = (
             f"[DEV FALLBACK — set ANTHROPIC_API_KEY for real generation]\n\n"
-            f"{req['growth_angle'].strip()}\n\n"
-            f"For {req['audience']}, this matters because the work happens at the "
+            + (f"{angle}\n\n" if angle else "")
+            + f"For {req['audience']}, this matters because the work happens at the "
             f"{brand['voice']['keywords'][0].lower()} layer — not the surface."
         )
         return {
