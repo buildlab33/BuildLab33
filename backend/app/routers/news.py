@@ -1,13 +1,27 @@
 """News feed endpoint — fetches RSS articles matched to brand industry."""
+import asyncio
+import logging
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
 import feedparser
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 
 from app.database import get_supabase
 from app.security import current_user
+
+logger = logging.getLogger(__name__)
+
+
+class NewsArticle(BaseModel):
+    title: str
+    url: str
+    source: str
+    summary: str
+    published_at: str
 
 router = APIRouter(prefix="/news", tags=["news"])
 
@@ -68,8 +82,9 @@ def _parse_entry(entry: dict, source: str) -> dict | None:
     url = entry.get("link", "").strip()
     if not title or not url:
         return None
+    if not url.startswith(("http://", "https://")):
+        return None
     summary = entry.get("summary", "") or entry.get("description", "")
-    import re
     summary = re.sub(r"<[^>]+>", "", summary).strip()[:300]
     published_at = None
     if entry.get("published_parsed"):
@@ -90,19 +105,19 @@ async def _fetch_feed(client: httpx.AsyncClient, source: str, url: str) -> list[
     try:
         resp = await client.get(url, timeout=8.0, follow_redirects=True)
         resp.raise_for_status()
-        parsed = feedparser.parse(resp.text)
+        parsed = feedparser.parse(resp.content)
         articles = []
         for entry in parsed.entries:
             article = _parse_entry(entry, source)
             if article:
                 articles.append(article)
         return articles
-    except Exception:
+    except Exception as e:
+        logger.warning("Feed fetch failed %s: %s", url, e)
         return []
 
 
 async def _fetch_all(feeds: list[tuple[str, str]]) -> list[dict]:
-    import asyncio
     async with httpx.AsyncClient(headers={"User-Agent": "COP-Platform/1.0"}) as client:
         tasks = [_fetch_feed(client, source, url) for source, url in feeds]
         results = await asyncio.gather(*tasks)
@@ -113,7 +128,7 @@ async def _fetch_all(feeds: list[tuple[str, str]]) -> list[dict]:
     return articles[:30]
 
 
-@router.get("")
+@router.get("", response_model=list[NewsArticle])
 async def get_news(
     brand_id: str,
     user: Annotated[dict, Depends(current_user)],
