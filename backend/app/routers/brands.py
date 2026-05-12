@@ -1,7 +1,10 @@
 """Brand CRUD and AI voice interview endpoints."""
+import logging
 from datetime import datetime, timezone
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+logger = logging.getLogger(__name__)
 
 from app.database import get_supabase
 from app.schemas.brands import (
@@ -126,14 +129,14 @@ async def analyse_brand_sources(
             "action": "brand_voice_analyse",
             "detail": f"Analysed {len(sources)} sources for brand {brand_id}",
         }).execute()
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("audit_log insert failed: %s", exc)
 
     return AnalyseSourcesResponse(
         sources=sources,
         combined_text=combined,
-        total_chars=sum(s.char_count for s in sources),
-        has_warnings=any(s.warning for s in sources),
+        total_chars=sum(s.char_count for s in valid_sources),
+        has_warnings=any(s.warning for s in valid_sources),
     )
 
 
