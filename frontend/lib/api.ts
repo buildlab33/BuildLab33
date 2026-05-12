@@ -161,8 +161,47 @@ export const generateVoiceConfig = (data: {
   sample_posts: string[];
 }) => api.post("/api/brands/generate-voice-config", data);
 
-export const ingestBrandUrls = (brandId: string, urls: string[], save: boolean) =>
-  api.post(`/api/brands/${brandId}/ingest-urls`, { urls, save });
+// ── Brand Voice Wizard ────────────────────────────────────────────────────
+
+export interface SourceResult {
+  source_label: string;
+  char_count: number;
+  warning: "empty" | "short" | "js_rendered" | null;
+  text: string;
+}
+
+export interface AnalyseSourcesResponse {
+  sources: SourceResult[];
+  combined_text: string;
+  total_chars: number;
+  has_warnings: boolean;
+}
+
+export const analyseSourcesForBrand = (
+  brandId: string,
+  urls: string[],
+  pasted_texts: string[]
+) =>
+  api.post<AnalyseSourcesResponse>(`/api/brands/${brandId}/analyse-sources`, {
+    urls,
+    pasted_texts,
+  });
+
+export interface VoiceConfigResult {
+  tone_descriptors: string[];
+  content_pillars: Array<{ name: string; description: string }>;
+  platform_rules: Record<string, string>;
+  word_bank: string[];
+  avoid: string[];
+  sample_prompts: string[];
+}
+
+export const generateVoiceConfigForBrand = (data: {
+  brand_name: string;
+  industry: string;
+  interview_answers: InterviewAnswer[];
+  sample_posts: string[];
+}) => api.post<VoiceConfigResult>("/api/brands/generate-voice-config", data);
 
 // ── Generate ──────────────────────────────────────────────────────────────
 
