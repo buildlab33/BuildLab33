@@ -40,7 +40,7 @@ export default function OutreachPage() {
   }
 
   useEffect(() => { load(); }, [filterBrand]);
-  useEffect(() => { getBrands().then(r => setBrands(r.data ?? [])).catch(() => {}); }, []);
+  useEffect(() => { getBrands().then(r => setBrands(r.data?.brands || [])).catch(() => {}); }, []);
 
   const activities: FlatActivity[] = contacts
     .flatMap(c => (c.activities ?? []).map(a => ({ ...a, contact: c })))

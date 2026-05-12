@@ -20,7 +20,7 @@ export default function ClientsPage() {
   }
 
   useEffect(() => { load(); }, [filterBrand]);
-  useEffect(() => { getBrands().then(r => setBrands(r.data ?? [])).catch(() => {}); }, []);
+  useEffect(() => { getBrands().then(r => setBrands(r.data?.brands || [])).catch(() => {}); }, []);
 
   function brandName(id: string | null) {
     if (!id) return "—";

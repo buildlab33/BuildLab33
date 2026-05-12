@@ -34,7 +34,7 @@ export default function LeadsPage() {
   }
 
   useEffect(() => { load(); }, [filterStatus, filterBrand]);
-  useEffect(() => { getBrands().then(r => setBrands(r.data ?? [])).catch(() => {}); }, []);
+  useEffect(() => { getBrands().then(r => setBrands(r.data?.brands || [])).catch(() => {}); }, []);
 
   function brandName(id: string | null) {
     if (!id) return "—";
