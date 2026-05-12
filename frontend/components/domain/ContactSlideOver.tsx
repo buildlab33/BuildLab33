@@ -58,7 +58,7 @@ export default function ContactSlideOver({ contactId, mode, initialStatus, onClo
   const [actSaving, setActSaving] = useState(false);
 
   useEffect(() => {
-    getBrands().then(r => setBrands(r.data ?? [])).catch(() => {});
+    getBrands().then(r => setBrands(r.data?.brands || [])).catch(() => {});
     if (mode === "view" && contactId) {
       getContact(contactId).then(r => {
         const c = r.data;
@@ -121,122 +121,142 @@ export default function ContactSlideOver({ contactId, mode, initialStatus, onClo
   }
 
   return (
-    <div ref={backdropRef} className="fixed inset-0 z-50 bg-black/40" onMouseDown={handleBackdropMouseDown}>
-      <div className="absolute right-0 top-0 h-full w-[420px] bg-background overflow-y-auto flex flex-col shadow-xl">
-        <div className="flex items-start justify-between p-5 border-b border-border">
-          <div>
-            <h2 className="text-lg font-semibold text-text">{mode === "create" ? "Add Contact" : (name || "Contact")}</h2>
+    <div ref={backdropRef} className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onMouseDown={handleBackdropMouseDown}>
+      <div className="relative w-full max-w-xl bg-surface border border-border rounded-2xl shadow-2xl flex flex-col max-h-[85vh]">
+
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-4 border-b border-border flex-shrink-0">
+          <div className="flex-1">
+            <h2 className="text-lg font-bold text-text">{mode === "create" ? "Add Contact" : (name || "Contact")}</h2>
             {mode === "view" && (company || role) && (
-              <p className="text-sm text-text-muted">{[role, company].filter(Boolean).join(" @ ")}</p>
+              <p className="text-sm text-text-muted mt-0.5">{[role, company].filter(Boolean).join(" @ ")}</p>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {mode === "view" && (
-              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_STYLE[status]}`}>{status}</span>
+              <span className={`text-xs px-2.5 py-1 rounded-full font-medium capitalize ${STATUS_STYLE[status]}`}>{status}</span>
             )}
-            <button onClick={onClose} className="text-text-muted hover:text-text transition-colors text-xl leading-none">&times;</button>
+            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-elevated hover:bg-border text-text-muted hover:text-text transition-colors text-lg">
+              &times;
+            </button>
           </div>
         </div>
-        <div className="p-5 border-b border-border space-y-3">
-          <div className="space-y-1">
-            <label className="text-xs text-text-muted uppercase tracking-wide">Name *</label>
-            <input value={name} onChange={e => setName(e.target.value)} className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text" />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
+
+        {/* Scrollable body */}
+        <div className="overflow-y-auto flex-1">
+
+          {/* Contact fields */}
+          <div className="px-6 py-5 border-b border-border space-y-4">
             <div className="space-y-1">
-              <label className="text-xs text-text-muted uppercase tracking-wide">Company</label>
-              <input value={company} onChange={e => setCompany(e.target.value)} className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text" />
+              <label className="text-xs font-medium text-text-muted uppercase tracking-wide">Name *</label>
+              <input value={name} onChange={e => setName(e.target.value)} className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:border-primary transition-colors" />
             </div>
-            <div className="space-y-1">
-              <label className="text-xs text-text-muted uppercase tracking-wide">Role</label>
-              <input value={role} onChange={e => setRole(e.target.value)} className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text" />
-            </div>
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs text-text-muted uppercase tracking-wide">Email</label>
-            <input value={email} onChange={e => setEmail(e.target.value)} type="email" className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text" />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs text-text-muted uppercase tracking-wide">LinkedIn URL</label>
-            <input value={linkedin} onChange={e => setLinkedin(e.target.value)} className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text" />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-xs text-text-muted uppercase tracking-wide">Brand</label>
-              <div className="relative">
-                <select value={brandId} onChange={e => setBrandId(e.target.value)} className="w-full appearance-none bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text pr-7">
-                  <option value="">None</option>
-                  {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                </select>
-                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-muted text-xs">&#9660;</span>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-text-muted uppercase tracking-wide">Company</label>
+                <input value={company} onChange={e => setCompany(e.target.value)} className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:border-primary transition-colors" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-text-muted uppercase tracking-wide">Role</label>
+                <input value={role} onChange={e => setRole(e.target.value)} className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:border-primary transition-colors" />
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-text-muted uppercase tracking-wide">Status</label>
-              <div className="relative">
-                <select value={status} onChange={e => setStatus(e.target.value as ContactStatus)} className="w-full appearance-none bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text pr-7">
-                  {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-muted text-xs">&#9660;</span>
-              </div>
+              <label className="text-xs font-medium text-text-muted uppercase tracking-wide">Email</label>
+              <input value={email} onChange={e => setEmail(e.target.value)} type="email" className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:border-primary transition-colors" />
             </div>
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs text-text-muted uppercase tracking-wide">Notes</label>
-            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text resize-none" />
-          </div>
-          <button onClick={handleSave} disabled={saving || !name.trim()} className="w-full bg-primary text-white rounded-lg py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors">
-            {saving ? "Saving..." : mode === "create" ? "Create Contact" : "Save changes"}
-          </button>
-        </div>
-        {mode === "view" && contact && (
-          <>
-            <div className="p-5 border-b border-border">
-              <h3 className="text-sm font-semibold text-text mb-3">Activity Log</h3>
-              {contact.activities.length === 0 ? (
-                <p className="text-sm text-text-muted">No activities logged yet.</p>
-              ) : (
-                <div className="space-y-3">
-                  {contact.activities.map((a: ActivityItem) => (
-                    <div key={a.id} className="flex gap-3 items-start">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${CHANNEL_STYLE[a.channel as ActivityChannel]}`}>{a.channel}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-text-muted">{a.activity_date}</p>
-                        <p className="text-sm text-text break-words">{a.notes}</p>
-                      </div>
-                      <button onClick={() => handleDeleteActivity(a.id)} className="text-text-muted hover:text-error transition-colors text-sm leading-none flex-shrink-0">&times;</button>
-                    </div>
-                  ))}
-                </div>
-              )}
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-text-muted uppercase tracking-wide">LinkedIn URL</label>
+              <input value={linkedin} onChange={e => setLinkedin(e.target.value)} className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:border-primary transition-colors" />
             </div>
-            <div className="p-5 space-y-3">
-              <h3 className="text-sm font-semibold text-text">Log Activity</h3>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs text-text-muted uppercase tracking-wide">Date</label>
-                  <input type="date" value={actDate} onChange={e => setActDate(e.target.value)} className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs text-text-muted uppercase tracking-wide">Channel</label>
-                  <div className="relative">
-                    <select value={actChannel} onChange={e => setActChannel(e.target.value as ActivityChannel)} className="w-full appearance-none bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text pr-7">
-                      {CHANNEL_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                    <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-muted text-xs">&#9660;</span>
-                  </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-text-muted uppercase tracking-wide">Brand</label>
+                <div className="relative">
+                  <select value={brandId} onChange={e => setBrandId(e.target.value)} className="w-full appearance-none bg-background border border-border rounded-lg px-3 py-2 text-sm text-text pr-7 focus:outline-none focus:border-primary transition-colors">
+                    <option value="">None</option>
+                    {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  </select>
+                  <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-muted text-xs">&#9660;</span>
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="text-xs text-text-muted uppercase tracking-wide">Notes</label>
-                <textarea value={actNotes} onChange={e => setActNotes(e.target.value)} rows={2} placeholder="What happened?" className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text resize-none" />
+                <label className="text-xs font-medium text-text-muted uppercase tracking-wide">Status</label>
+                <div className="relative">
+                  <select value={status} onChange={e => setStatus(e.target.value as ContactStatus)} className="w-full appearance-none bg-background border border-border rounded-lg px-3 py-2 text-sm text-text pr-7 focus:outline-none focus:border-primary transition-colors">
+                    {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-muted text-xs">&#9660;</span>
+                </div>
               </div>
-              <button onClick={handleLogActivity} disabled={actSaving || !actNotes.trim()} className="w-full bg-surface border border-border text-text rounded-lg py-2 text-sm font-medium hover:bg-surface/80 disabled:opacity-50 transition-colors">
-                {actSaving ? "Logging..." : "Log Activity"}
-              </button>
             </div>
-          </>
-        )}
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-text-muted uppercase tracking-wide">Notes</label>
+              <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-text resize-none focus:outline-none focus:border-primary transition-colors" />
+            </div>
+          </div>
+
+          {/* Activity log */}
+          {mode === "view" && contact && (
+            <>
+              <div className="px-6 py-5 border-b border-border">
+                <h3 className="text-sm font-semibold text-text mb-3">Activity Log</h3>
+                {contact.activities.length === 0 ? (
+                  <p className="text-sm text-text-muted">No activities logged yet.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {contact.activities.map((a: ActivityItem) => (
+                      <div key={a.id} className="flex gap-3 items-start bg-background rounded-lg p-3">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap mt-0.5 ${CHANNEL_STYLE[a.channel as ActivityChannel]}`}>{a.channel}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-text-muted mb-0.5">{a.activity_date}</p>
+                          <p className="text-sm text-text break-words">{a.notes}</p>
+                        </div>
+                        <button onClick={() => handleDeleteActivity(a.id)} className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-error/10 text-text-muted hover:text-error transition-colors text-sm flex-shrink-0">&times;</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="px-6 py-5 space-y-3">
+                <h3 className="text-sm font-semibold text-text">Log Activity</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-text-muted uppercase tracking-wide">Date</label>
+                    <input type="date" value={actDate} onChange={e => setActDate(e.target.value)} className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:border-primary transition-colors" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-text-muted uppercase tracking-wide">Channel</label>
+                    <div className="relative">
+                      <select value={actChannel} onChange={e => setActChannel(e.target.value as ActivityChannel)} className="w-full appearance-none bg-background border border-border rounded-lg px-3 py-2 text-sm text-text pr-7 focus:outline-none focus:border-primary transition-colors">
+                        {CHANNEL_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                      <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-muted text-xs">&#9660;</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-text-muted uppercase tracking-wide">Notes</label>
+                  <textarea value={actNotes} onChange={e => setActNotes(e.target.value)} rows={2} placeholder="What happened?" className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-text resize-none focus:outline-none focus:border-primary transition-colors" />
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-border bg-elevated flex-shrink-0 flex gap-2">
+          {mode === "view" && contact && (
+            <button onClick={handleLogActivity} disabled={actSaving || !actNotes.trim()} className="flex-1 bg-elevated border border-border text-text rounded-lg py-2 text-sm font-medium hover:bg-border disabled:opacity-50 transition-colors">
+              {actSaving ? "Logging..." : "Log Activity"}
+            </button>
+          )}
+          <button onClick={handleSave} disabled={saving || !name.trim()} className="flex-1 bg-primary text-white rounded-lg py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors">
+            {saving ? "Saving..." : mode === "create" ? "Create Contact" : "Save changes"}
+          </button>
+        </div>
+
       </div>
     </div>
   );

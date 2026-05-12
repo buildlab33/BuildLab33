@@ -58,10 +58,12 @@ def load_brand_config(brand_id: str) -> dict:
     pillars = db_pillars if db_pillars else vc_pillars
 
     off_limits: list[str] = voice_config.get("avoid", [])
+    sample_posts: list[str] = voice_config.get("sample_posts", [])
 
     return {
         "name": brand["name"],
         "voice": voice,
         "content_pillars": pillars,
         "off_limits": off_limits,
+        "sample_posts": sample_posts,
     }

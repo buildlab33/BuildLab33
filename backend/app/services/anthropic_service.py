@@ -28,23 +28,28 @@ Length target: {rules['min_words']}-{rules['max_words']} words.
 Platform notes: {rules['tone_note']}
 
 Output rules:
-1. Return ONLY the post text. No commentary, no explanations, no preamble.
-2. Do not invent statistics or client names that were not provided in the user brief.
-3. Do not use generic AI-sounding phrases ("In today's fast-paced world", "Let's dive in", etc.).
-4. Match the brand voice precisely. If the brand is strategic and infrastructure-led, be that. If it is cinematic and emotionally driven, be that.
-5. The post must feel written by a person who knows this brand deeply.
+1. Return ONLY the post text. No commentary, no explanations, no preamble. Never ask clarifying questions.
+2. Do not invent statistics or specific client names that were not provided in the user brief.
+3. If the brief lacks specific details (e.g. a case study with no client named), write a strong, authentic post using what IS provided — use evocative language, the brand voice, and the campaign goal. You can reference "a recent client", "a campaign we ran", "a project" without naming specifics.
+4. Do not use generic AI-sounding phrases ("In today's fast-paced world", "Let's dive in", etc.).
+5. Match the brand voice precisely. If the brand is strategic and infrastructure-led, be that. If it is cinematic and emotionally driven, be that.
+6. The post must feel written by a person who knows this brand deeply.
 """.strip()
 
 
-def _build_user_prompt(req: dict, pillars_text: str) -> str:
+def _build_user_prompt(req: dict, pillars_text: str, sample_posts: list[str]) -> str:
     format_line = f"Content format: {req['content_format']}\n" if req.get("content_format") else ""
     angle_line = f"Growth angle / specific insight to anchor on: {req['growth_angle']}\n" if req.get("growth_angle") else ""
     pillars_section = f"\nAvailable content pillars to align with:\n{pillars_text}\n" if pillars_text else ""
+    samples_section = ""
+    if sample_posts:
+        formatted = "\n\n---\n\n".join(sample_posts[:5])
+        samples_section = f"\nHere are real posts published for this brand — study the style, sentence structure, vocabulary, and tone, then match it exactly:\n\n{formatted}\n"
     return f"""Write a {req['platform']} post for the following brief.
 
 {format_line}Campaign goal: {req['campaign_goal']}
 Target audience: {req['audience']}
-{angle_line}{pillars_section}
+{angle_line}{pillars_section}{samples_section}
 Write the post now.""".strip()
 
 
@@ -76,7 +81,7 @@ def generate_post(req: dict[str, Any]) -> dict[str, Any]:
 
     client = Anthropic(api_key=settings.anthropic_api_key)
     system = _build_system_prompt(brand, req["platform"])
-    user = _build_user_prompt(req, pillars_text)
+    user = _build_user_prompt(req, pillars_text, brand.get("sample_posts", []))
     rules = PLATFORM_RULES.get(req["platform"], PLATFORM_RULES["linkedin"])
     max_tokens = max(600, rules["max_words"] * 4)
 

@@ -56,6 +56,10 @@ export default function BrandDetailPage() {
   const [timezone, setTimezone] = useState("Asia/Singapore");
   const [pillars, setPillars] = useState<Array<{ name: string; description: string }>>([]);
   const [newPillarName, setNewPillarName] = useState("");
+  const [samplePosts, setSamplePosts] = useState<string[]>([]);
+  const [newPost, setNewPost] = useState("");
+  const [savingPosts, setSavingPosts] = useState(false);
+  const [expandedPost, setExpandedPost] = useState<number | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -69,6 +73,8 @@ export default function BrandDetailPage() {
         setBrandColour(b.brand_colour || "#6366f1");
         setTimezone(b.default_timezone || "Asia/Singapore");
         setPillars(b.content_pillars || []);
+        const vc = b.voice_config as Record<string, unknown>;
+        setSamplePosts((vc?.sample_posts as string[]) || []);
       })
       .catch(() => {
         toast.error("Failed to load brand");
@@ -122,6 +128,31 @@ export default function BrandDetailPage() {
     } finally {
       setArchiving(false);
     }
+  };
+
+  const handleSavePosts = async () => {
+    if (!id || !brand) return;
+    setSavingPosts(true);
+    try {
+      const existingVc = (brand.voice_config as Record<string, unknown>) || {};
+      await updateBrand(id, { voice_config: { ...existingVc, sample_posts: samplePosts } });
+      toast.success("Sample posts saved");
+    } catch {
+      toast.error("Failed to save sample posts");
+    } finally {
+      setSavingPosts(false);
+    }
+  };
+
+  const addPost = () => {
+    const trimmed = newPost.trim();
+    if (!trimmed || samplePosts.length >= 10) return;
+    setSamplePosts([...samplePosts, trimmed]);
+    setNewPost("");
+  };
+
+  const removePost = (index: number) => {
+    setSamplePosts(samplePosts.filter((_, i) => i !== index));
   };
 
   const addPillar = () => {
@@ -264,6 +295,81 @@ export default function BrandDetailPage() {
                   <Plus className="w-4 h-4" />
                 </button>
               </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Sample Posts */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Sample Posts</CardTitle>
+            <p className="text-xs text-text-muted mt-0.5">Paste real posts published for this brand. The AI uses these as style references when generating content.</p>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {samplePosts.length === 0 && (
+              <p className="text-xs text-text-muted">No sample posts added yet.</p>
+            )}
+            {samplePosts.map((post, i) => {
+              const isExpanded = expandedPost === i;
+              const isLong = post.length > 180;
+              return (
+                <div key={i} className="relative group rounded-lg border border-border bg-elevated p-3 pr-8">
+                  <p className={`text-xs text-text-secondary whitespace-pre-wrap leading-relaxed ${!isExpanded && isLong ? "line-clamp-3" : ""}`}>
+                    {post}
+                  </p>
+                  {isLong && (
+                    <button
+                      onClick={() => setExpandedPost(isExpanded ? null : i)}
+                      className="text-xs text-primary hover:underline mt-1 block"
+                    >
+                      {isExpanded ? "Show less" : "Show more"}
+                    </button>
+                  )}
+                  {isAdmin && (
+                    <button
+                      onClick={() => removePost(i)}
+                      className="absolute top-2 right-2 text-text-muted hover:text-error opacity-0 group-hover:opacity-100 transition-all"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+            {isAdmin && (
+              <div className="space-y-2 mt-2">
+                {samplePosts.length < 10 ? (
+                  <>
+                    <textarea
+                      value={newPost}
+                      onChange={(e) => setNewPost(e.target.value)}
+                      placeholder="Paste a published post here…"
+                      rows={4}
+                      className="w-full rounded-md border border-border bg-surface text-text-primary text-sm px-3 py-2 focus:outline-none focus:border-border-active resize-none placeholder:text-text-muted"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={addPost}
+                        disabled={!newPost.trim()}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border bg-surface text-text-secondary hover:bg-elevated hover:text-text-primary transition-colors text-xs disabled:opacity-40"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Add post
+                      </button>
+                      <span className="text-xs text-text-muted self-center">{samplePosts.length}/10 posts</span>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-xs text-text-muted bg-elevated border border-border rounded-lg px-3 py-2">
+                    Maximum 10 sample posts reached. The AI uses the 5 most recent as style references. Remove a post to add a new one.
+                  </p>
+                )}
+              </div>
+            )}
+            {isAdmin && (
+              <Button className="w-full mt-1" variant="ghost" disabled={savingPosts} onClick={handleSavePosts}>
+                <Save className="w-4 h-4 mr-2" />
+                {savingPosts ? "Saving..." : "Save Sample Posts"}
+              </Button>
             )}
           </CardContent>
         </Card>
