@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { getBrand, updateBrand, archiveBrand, restoreBrand, ingestBrandUrls, type BrandDetail } from "@/lib/api";
+import { getBrand, updateBrand, archiveBrand, restoreBrand, type BrandDetail } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/toast";
 import { Save, Archive, RotateCcw, ChevronLeft, Plus, X } from "lucide-react";
+import BrandVoiceWizard from "@/components/domain/BrandVoiceWizard";
 
 const TIMEZONES = [
   { value: "UTC", label: "(UTC+00:00) UTC" },
@@ -60,11 +61,7 @@ export default function BrandDetailPage() {
   const [newPost, setNewPost] = useState("");
   const [savingPosts, setSavingPosts] = useState(false);
   const [expandedPost, setExpandedPost] = useState<number | null>(null);
-  const [ingestUrls, setIngestUrls] = useState<string[]>([]);
-  const [newIngestUrl, setNewIngestUrl] = useState("");
-  const [ingesting, setIngesting] = useState(false);
-  const [ingestPreview, setIngestPreview] = useState<Record<string, unknown> | null>(null);
-  const [savingVoice, setSavingVoice] = useState(false);
+  const [showVoiceWizard, setShowVoiceWizard] = useState(false);
   const [postsPerWeek, setPostsPerWeek] = useState(3);
   const [cadencePlatforms, setCadencePlatforms] = useState<string[]>([]);
   const [preferredDays, setPreferredDays] = useState<string[]>([]);
@@ -201,46 +198,6 @@ export default function BrandDetailPage() {
 
   const removePillar = (index: number) => {
     setPillars(pillars.filter((_, i) => i !== index));
-  };
-
-  const addIngestUrl = () => {
-    const trimmed = newIngestUrl.trim();
-    if (!trimmed || ingestUrls.length >= 10 || ingestUrls.includes(trimmed)) return;
-    setIngestUrls([...ingestUrls, trimmed]);
-    setNewIngestUrl("");
-  };
-
-  const removeIngestUrl = (index: number) => {
-    setIngestUrls(ingestUrls.filter((_, i) => i !== index));
-  };
-
-  const handleAnalyseUrls = async () => {
-    if (!id || ingestUrls.length === 0) return;
-    setIngesting(true);
-    try {
-      const res = await ingestBrandUrls(id, ingestUrls, false);
-      setIngestPreview(res.data as Record<string, unknown>);
-    } catch {
-      toast.error("Could not extract content from those URLs");
-    } finally {
-      setIngesting(false);
-    }
-  };
-
-  const handleSaveVoiceConfig = async () => {
-    if (!id || !ingestPreview) return;
-    setSavingVoice(true);
-    try {
-      await updateBrand(id, { voice_config: ingestPreview });
-      toast.success("Voice config updated");
-      const res = await getBrand(id);
-      setBrand(res.data);
-      setIngestPreview(null);
-    } catch {
-      toast.error("Failed to save voice config");
-    } finally {
-      setSavingVoice(false);
-    }
   };
 
   if (loading) {
@@ -547,121 +504,46 @@ export default function BrandDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Import Brand Voice from URLs */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Import Brand Voice from URLs</CardTitle>
-            <p className="text-xs text-text-muted mt-0.5">Paste your website and social media URLs. The AI will read them and generate a brand voice config automatically.</p>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {ingestUrls.length === 0 && (
-              <p className="text-xs text-text-muted">No URLs added yet.</p>
-            )}
-            {ingestUrls.map((url, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <Badge variant="outline" className="flex-1 justify-start text-xs font-normal py-1.5 px-3 font-mono truncate">
-                  {url}
-                </Badge>
-                {isAdmin && (
-                  <button onClick={() => removeIngestUrl(i)} className="text-text-muted hover:text-error transition-colors flex-shrink-0">
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-            ))}
-            {isAdmin && (
-              <>
-                <div className="flex gap-2 mt-2">
-                  <Input
-                    value={newIngestUrl}
-                    onChange={(e) => setNewIngestUrl(e.target.value)}
-                    placeholder="https://..."
-                    onKeyDown={(e) => e.key === "Enter" && addIngestUrl()}
-                    disabled={ingestUrls.length >= 10}
-                  />
-                  <button
-                    onClick={addIngestUrl}
-                    disabled={ingestUrls.length >= 10}
-                    className="flex-shrink-0 flex items-center justify-center w-10 rounded-md border border-border bg-surface text-text-secondary hover:bg-elevated hover:text-text-primary transition-colors py-2 disabled:opacity-40"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                </div>
-                <Button
-                  className="w-full mt-1"
-                  variant="ghost"
-                  disabled={ingesting || ingestUrls.length === 0}
-                  onClick={handleAnalyseUrls}
-                >
-                  {ingesting ? "Analysing..." : `Analyse URLs`}
-                  {!ingesting && (
-                    <span className="ml-2 text-xs text-text-muted">({ingestUrls.length}/10 URLs)</span>
-                  )}
-                </Button>
-              </>
-            )}
-            {ingestPreview && (
-              <div className="mt-3 border-t border-border pt-3 space-y-3">
-                {Array.isArray(ingestPreview.tone_descriptors) && (
-                  <div>
-                    <p className="text-xs text-text-muted font-semibold uppercase tracking-wide mb-1.5">Tone</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {(ingestPreview.tone_descriptors as string[]).map((t) => (
-                        <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-elevated border border-border text-text-secondary">{t}</span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {Array.isArray(ingestPreview.avoid) && (
-                  <div>
-                    <p className="text-xs text-text-muted font-semibold uppercase tracking-wide mb-1.5">Avoid</p>
-                    <p className="text-xs text-error">
-                      {(ingestPreview.avoid as string[]).join(", ")}
-                    </p>
-                  </div>
-                )}
-                {isAdmin && (
-                  <Button
-                    className="w-full"
-                    variant="ghost"
-                    disabled={savingVoice}
-                    onClick={handleSaveVoiceConfig}
-                  >
-                    <Save className="w-4 h-4 mr-2" />
-                    {savingVoice ? "Saving..." : "Save as Voice Config"}
-                  </Button>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Voice Config (read-only preview) */}
-        {brand.voice_config && Object.keys(brand.voice_config).length > 0 && (
+        {/* Brand Voice Config */}
+        {isAdmin && (
           <Card>
-            <CardHeader><CardTitle>Brand Voice Config</CardTitle></CardHeader>
-            <CardContent>
-              {Array.isArray((brand.voice_config as Record<string, unknown>).tone_descriptors) && (
-                <div className="mb-3">
-                  <p className="text-xs text-text-muted font-semibold uppercase tracking-wide mb-1.5">Tone</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {((brand.voice_config as Record<string, unknown>).tone_descriptors as string[]).map((t) => (
-                      <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-elevated border border-border text-text-secondary">{t}</span>
-                    ))}
-                  </div>
-                </div>
+            <CardHeader>
+              <CardTitle>Brand Voice Config</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {brand.voice_config && Object.keys(brand.voice_config).length > 0 ? (
+                <>
+                  {Array.isArray((brand.voice_config as Record<string, unknown>).tone_descriptors) && (
+                    <div>
+                      <p className="text-xs text-text-muted font-semibold uppercase tracking-wide mb-1.5">Tone</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {((brand.voice_config as Record<string, unknown>).tone_descriptors as string[]).map((t) => (
+                          <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-elevated border border-border text-text-secondary">{t}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {Array.isArray((brand.voice_config as Record<string, unknown>).avoid) && (
+                    <div>
+                      <p className="text-xs text-text-muted font-semibold uppercase tracking-wide mb-1.5">Avoid</p>
+                      <p className="text-xs text-error">
+                        {((brand.voice_config as Record<string, unknown>).avoid as string[]).join(", ")}
+                      </p>
+                    </div>
+                  )}
+                  <p className="text-xs text-text-muted mt-2">Voice config is active and used in content generation.</p>
+                </>
+              ) : (
+                <p className="text-xs text-text-muted">No voice config yet. Use the wizard to generate one.</p>
               )}
-              {Array.isArray((brand.voice_config as Record<string, unknown>).avoid) && (
-                <div>
-                  <p className="text-xs text-text-muted font-semibold uppercase tracking-wide mb-1.5">Avoid</p>
-                  <p className="text-xs text-error">
-                    {((brand.voice_config as Record<string, unknown>).avoid as string[]).join(", ")}
-                  </p>
-                </div>
-              )}
-              <p className="text-xs text-text-muted mt-3">
-                Voice config is generated during brand creation and used automatically in content generation.
-              </p>
+              <button
+                onClick={() => setShowVoiceWizard(true)}
+                className="w-full mt-2 px-4 py-2.5 rounded-lg border border-primary/40 bg-primary/10 text-primary text-sm font-medium hover:bg-primary/20 transition-colors"
+              >
+                {brand.voice_config && Object.keys(brand.voice_config).length > 0
+                  ? "Re-run Voice Wizard"
+                  : "Run Voice Wizard"}
+              </button>
             </CardContent>
           </Card>
         )}
@@ -673,6 +555,20 @@ export default function BrandDetailPage() {
           </Button>
         )}
       </div>
+
+      {showVoiceWizard && brand && (
+        <BrandVoiceWizard
+          brandId={id}
+          brandName={brand.name}
+          brandIndustry={brand.industry || ""}
+          onClose={() => setShowVoiceWizard(false)}
+          onSaved={async () => {
+            const res = await getBrand(id);
+            setBrand(res.data);
+            toast.success("Voice config saved");
+          }}
+        />
+      )}
     </div>
   );
 }
