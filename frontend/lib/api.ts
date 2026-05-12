@@ -305,3 +305,6 @@ export const unschedulePost = (id: string) =>
 
 export const reschedulePost = (id: string, scheduled_at: string) =>
   api.patch<PostItem>(`/api/posts/${id}/reschedule`, { scheduled_at });
+
+export const forceSchedulePost = (id: string, scheduled_at: string) =>
+  api.post<PostItem>(`/api/posts/${id}/force-schedule`, { scheduled_at });
