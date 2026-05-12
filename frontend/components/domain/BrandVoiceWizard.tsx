@@ -120,8 +120,9 @@ export default function BrandVoiceWizard({ brandId, brandName, brandIndustry, on
       setAnalysisResult(res.data);
       setEditedSources(res.data.sources.map((s) => ({ ...s })));
       setStep("review");
-    } catch {
-      setAnalyseError("Could not reach some sources. Check URLs and try again.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : undefined;
+      setAnalyseError(msg ?? "Could not reach some sources. Check URLs and try again.");
     } finally {
       setAnalysing(false);
     }
@@ -192,8 +193,9 @@ export default function BrandVoiceWizard({ brandId, brandName, brandIndustry, on
       await updateBrand(brandId, { voice_config: mergedVoiceConfig });
       onSaved();
       onClose();
-    } catch {
-      setSaveError("Failed to save. Please try again.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : undefined;
+      setSaveError(msg ?? "Failed to save. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -315,11 +317,27 @@ export default function BrandVoiceWizard({ brandId, brandName, brandIndustry, on
             )}
             {step === "review" && (
               <button
-                onClick={() => setStep("generate")}
+                onClick={() => {
+                  setVoiceConfig(null);
+                  setStep("generate");
+                }}
                 disabled={editedSources.every((s) => !s.text.trim())}
                 className="flex items-center gap-2 px-5 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
               >
                 Generate Voice Config <ChevronRight className="w-4 h-4" />
+              </button>
+            )}
+            {step === "generate" && (
+              <button
+                onClick={() => {
+                  setGenerating(false);
+                  setGenerateError("");
+                  setStep("review");
+                }}
+                disabled={!generateError && generating}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-border bg-surface text-text-secondary hover:bg-elevated text-sm font-medium transition-colors disabled:opacity-40"
+              >
+                <ChevronLeft className="w-4 h-4" /> Cancel
               </button>
             )}
             {step === "generate" && generateError && (
@@ -395,7 +413,7 @@ function Step1Sources({
         {urls.length > 0 && (
           <div className="mt-2 space-y-1.5">
             {urls.map((url, i) => (
-              <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-elevated border border-border">
+              <div key={url} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-elevated border border-border">
                 <span className="flex-1 text-xs text-text-secondary font-mono truncate">{url}</span>
                 <button onClick={() => removeUrl(i)} className="text-text-muted hover:text-error transition-colors flex-shrink-0">
                   <X className="w-3.5 h-3.5" />
@@ -487,7 +505,7 @@ function Step2Review({ editedSources, setEditedSources, hasWarnings }: Step2Prop
         </div>
       )}
       {editedSources.map((source, i) => (
-        <div key={i} className="rounded-lg border border-border bg-elevated p-4 space-y-2">
+        <div key={source.source_label} className="rounded-lg border border-border bg-elevated p-4 space-y-2">
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs font-medium text-text-secondary truncate">{source.source_label}</span>
             <WarningBadge warning={source.warning} />
@@ -565,7 +583,7 @@ function EditableTagList({ label, items, onChange }: { label: string; items: str
       <p className="text-xs font-semibold text-text-muted uppercase tracking-wide">{label}</p>
       <div className="flex flex-wrap gap-1.5">
         {items.map((item, i) => (
-          <span key={i} className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-elevated border border-border text-text-secondary">
+          <span key={item} className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-elevated border border-border text-text-secondary">
             {item}
             <button onClick={() => onChange(items.filter((_, idx) => idx !== i))} className="text-text-muted hover:text-error transition-colors">
               <X className="w-3 h-3" />
