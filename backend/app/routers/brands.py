@@ -5,11 +5,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.database import get_supabase
 from app.schemas.brands import (
+    AnalyseSourcesRequest,
+    AnalyseSourcesResponse,
     BrandCreate,
     BrandDetail,
     BrandUpdate,
     GenerateVoiceConfigRequest,
-    IngestUrlsRequest,
 )
 from app.security import current_user
 from app.services.brand_service import (
@@ -24,7 +25,7 @@ from app.services.brand_service import (
     update_brand,
 )
 from app.services.anthropic_service import generate_voice_config
-from app.services.url_scraper import scrape_urls
+from app.services.url_scraper import analyse_sources
 
 router = APIRouter(prefix="/brands", tags=["brands"])
 
@@ -88,42 +89,52 @@ async def generate_voice_config_endpoint(
         raise HTTPException(status_code=500, detail=f"Voice config generation failed: {str(e)}")
 
 
-# ── Ingest URLs ───────────────────────────────────────────────────────────────
+# ── Analyse sources ───────────────────────────────────────────────────────────
 
-@router.post("/{brand_id}/ingest-urls")
-async def ingest_urls(
+@router.post("/{brand_id}/analyse-sources", response_model=AnalyseSourcesResponse)
+async def analyse_brand_sources(
     brand_id: str,
-    body: IngestUrlsRequest,
+    body: AnalyseSourcesRequest,
     user: Annotated[dict, Depends(current_user)],
 ):
-    """Scrape URLs and generate a brand voice config from the content."""
+    """Scrape URLs and/or accept pasted text; return per-source structured results."""
     if user["role"] not in ("super_admin", "admin"):
         raise HTTPException(status_code=403, detail="Admin access required")
     brand = get_brand(brand_id)
     if not brand:
         raise HTTPException(status_code=404, detail="Brand not found")
+    if not body.urls and not body.pasted_texts:
+        raise HTTPException(status_code=422, detail="Provide at least one URL or pasted text")
 
-    scraped_text = await scrape_urls([str(u) for u in body.urls])
-    if not scraped_text.strip():
-        raise HTTPException(status_code=422, detail="Could not extract content from any of the provided URLs")
-
-    # Use scraped text as a single "sample post" block fed to existing voice config generator
-    config = await generate_voice_config(
-        brand_name=brand["name"],
-        industry=brand.get("industry", ""),
-        interview_answers=[],
-        sample_posts=[scraped_text],
+    sources = await analyse_sources(
+        [str(u) for u in body.urls],
+        body.pasted_texts,
     )
 
-    if body.save:
-        try:
-            sb = get_supabase()
-            now = datetime.now(timezone.utc).isoformat()
-            sb.table("brands").update({"voice_config": config, "updated_at": now}).eq("id", brand_id).execute()
-        except Exception as exc:
-            raise HTTPException(status_code=500, detail=f"Failed to save voice config: {exc}")
+    valid_sources = [s for s in sources if s.text.strip()]
+    if not valid_sources:
+        raise HTTPException(status_code=422, detail="Could not extract content from any source")
 
-    return config
+    combined = "\n\n---\n\n".join(
+        f"[Source: {s.source_label}]\n{s.text}" for s in valid_sources
+    )
+
+    try:
+        sb = get_supabase()
+        sb.table("audit_log").insert({
+            "user_id": user["sub"],
+            "action": "brand_voice_analyse",
+            "detail": f"Analysed {len(sources)} sources for brand {brand_id}",
+        }).execute()
+    except Exception:
+        pass
+
+    return AnalyseSourcesResponse(
+        sources=sources,
+        combined_text=combined,
+        total_chars=sum(s.char_count for s in sources),
+        has_warnings=any(s.warning for s in sources),
+    )
 
 
 # ── List brands ────────────────────────────────────────────────────────────────
