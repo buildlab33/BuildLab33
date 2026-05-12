@@ -2,9 +2,10 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
-  getPosts, getBrands, schedulePost, unschedulePost, reschedulePost,
+  getPosts, getBrands, schedulePost, unschedulePost, reschedulePost, forceSchedulePost,
   PostItem, BrandPublic,
 } from "@/lib/api";
+import { ClashModal } from "@/components/domain/ClashModal";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/domain/StatusBadge";
@@ -92,6 +93,14 @@ export default function CalendarPage() {
   const [rescheduling, setRescheduling] = useState(false);
   const reschedulePanelRef = useRef<HTMLDivElement>(null);
 
+  // Clash modal
+  const [clashData, setClashData] = useState<{
+    clashingPost: { id: string; text: string; platform: string; scheduled_at: string };
+    pendingPostId: string;
+    pendingDateTime: string;
+  } | null>(null);
+  const [clashSubmitting, setClashSubmitting] = useState(false);
+
   // Close panels on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -167,8 +176,18 @@ export default function CalendarPage() {
       setScheduleDate(null);
       setSelectedPostId(null);
       loadPosts();
-    } catch {
-      toast.error("Failed to schedule post");
+    } catch (err: unknown) {
+      const apiErr = err as { response?: { status?: number; data?: { detail?: { detail?: string; clashing_post?: { id: string; text: string; platform: string; scheduled_at: string } } } } };
+      if (apiErr?.response?.status === 409 && apiErr?.response?.data?.detail?.detail === "clash") {
+        const cp = apiErr.response.data.detail.clashing_post!;
+        setClashData({
+          clashingPost: cp,
+          pendingPostId: selectedPostId,
+          pendingDateTime: isoDateTime(scheduleDate, scheduleTime),
+        });
+      } else {
+        toast.error("Failed to schedule post");
+      }
     } finally {
       setScheduling(false);
     }
@@ -182,11 +201,66 @@ export default function CalendarPage() {
       toast.success("Post rescheduled");
       setReschedulePost(null);
       loadPosts();
-    } catch {
-      toast.error("Failed to reschedule post");
+    } catch (err: unknown) {
+      const apiErr = err as { response?: { status?: number; data?: { detail?: { detail?: string; clashing_post?: { id: string; text: string; platform: string; scheduled_at: string } } } } };
+      if (apiErr?.response?.status === 409 && apiErr?.response?.data?.detail?.detail === "clash") {
+        const cp = apiErr.response.data.detail.clashing_post!;
+        setClashData({
+          clashingPost: cp,
+          pendingPostId: reschedulePost_.id,
+          pendingDateTime: isoDateTime(rescheduleDate, rescheduleTime),
+        });
+      } else {
+        toast.error("Failed to reschedule post");
+      }
     } finally {
       setRescheduling(false);
     }
+  };
+
+  const closeClashModal = () => {
+    setClashData(null);
+    setClashSubmitting(false);
+  };
+
+  const handleClashKeepBoth = async () => {
+    if (!clashData) return;
+    setClashSubmitting(true);
+    try {
+      await forceSchedulePost(clashData.pendingPostId, clashData.pendingDateTime);
+      toast.success("Post scheduled alongside existing post");
+      closeClashModal();
+      setScheduleDate(null);
+      setSelectedPostId(null);
+      setReschedulePost(null);
+      loadPosts();
+    } catch {
+      toast.error("Failed to schedule post");
+      setClashSubmitting(false);
+    }
+  };
+
+  const handleClashReplace = async () => {
+    if (!clashData) return;
+    setClashSubmitting(true);
+    try {
+      await unschedulePost(clashData.clashingPost.id);
+      await forceSchedulePost(clashData.pendingPostId, clashData.pendingDateTime);
+      toast.success("Existing post moved to draft. New post scheduled.");
+      closeClashModal();
+      setScheduleDate(null);
+      setSelectedPostId(null);
+      setReschedulePost(null);
+      loadPosts();
+    } catch {
+      toast.error("Failed to replace post");
+      setClashSubmitting(false);
+    }
+  };
+
+  const handleClashPickDifferentTime = () => {
+    closeClashModal();
+    // panels remain open — user can change the time and re-submit
   };
 
   const handleUnschedule = async () => {
@@ -572,6 +646,16 @@ export default function CalendarPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {clashData && (
+        <ClashModal
+          clashingPost={clashData.clashingPost}
+          onKeepBoth={handleClashKeepBoth}
+          onReplace={handleClashReplace}
+          onPickDifferentTime={handleClashPickDifferentTime}
+          submitting={clashSubmitting}
+        />
       )}
     </div>
   );
