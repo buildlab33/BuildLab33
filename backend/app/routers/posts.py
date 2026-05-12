@@ -266,7 +266,7 @@ async def schedule_post(post_id: str, body: ScheduleRequest, user: Annotated[dic
 
 @router.post("/{post_id}/unschedule", response_model=PostOut)
 async def unschedule_post(post_id: str, user: Annotated[dict, Depends(current_user)]):
-    """Move scheduled → approved. Clears scheduled_at."""
+    """Move scheduled → draft. Clears scheduled_at."""
     sb = get_supabase()
     res = sb.table("posts").select("*").eq("id", post_id).limit(1).execute()
     if not res.data:
@@ -278,7 +278,7 @@ async def unschedule_post(post_id: str, user: Annotated[dict, Depends(current_us
         raise HTTPException(status_code=400, detail=f"Only scheduled posts can be unscheduled (current: {post['status']})")
     now = datetime.now(timezone.utc).isoformat()
     updated = sb.table("posts").update({
-        "status": "approved",
+        "status": "draft",
         "scheduled_at": None,
         "updated_at": now,
     }).eq("id", post_id).execute()
@@ -321,6 +321,35 @@ async def reschedule_post(post_id: str, body: RescheduleRequest, user: Annotated
         )
     now = datetime.now(timezone.utc).isoformat()
     updated = sb.table("posts").update({
+        "scheduled_at": body.scheduled_at,
+        "updated_at": now,
+    }).eq("id", post_id).execute()
+    if not updated.data:
+        raise HTTPException(status_code=500, detail="Update failed or row no longer accessible")
+    return updated.data[0]
+
+
+@router.post("/{post_id}/force-schedule", response_model=PostOut)
+async def force_schedule_post(post_id: str, body: ForceScheduleRequest, user: Annotated[dict, Depends(current_user)]):
+    """Schedule a post without clash checking. Used by clash modal (Keep Both / Replace)."""
+    sb = get_supabase()
+    res = sb.table("posts").select("*").eq("id", post_id).limit(1).execute()
+    if not res.data:
+        raise HTTPException(status_code=404, detail="Post not found")
+    post = res.data[0]
+    if user.get("role") not in ADMIN_ROLES and post["created_by"] != user["sub"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    if post["status"] != "approved":
+        raise HTTPException(status_code=400, detail=f"Only approved posts can be force-scheduled (current: {post['status']})")
+    try:
+        scheduled_dt = datetime.fromisoformat(body.scheduled_at.replace("Z", "+00:00"))
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid scheduled_at format — use ISO 8601")
+    if scheduled_dt <= datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="scheduled_at must be in the future")
+    now = datetime.now(timezone.utc).isoformat()
+    updated = sb.table("posts").update({
+        "status": "scheduled",
         "scheduled_at": body.scheduled_at,
         "updated_at": now,
     }).eq("id", post_id).execute()
