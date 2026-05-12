@@ -65,6 +65,10 @@ export default function BrandDetailPage() {
   const [ingesting, setIngesting] = useState(false);
   const [ingestPreview, setIngestPreview] = useState<Record<string, unknown> | null>(null);
   const [savingVoice, setSavingVoice] = useState(false);
+  const [postsPerWeek, setPostsPerWeek] = useState(3);
+  const [cadencePlatforms, setCadencePlatforms] = useState<string[]>([]);
+  const [preferredDays, setPreferredDays] = useState<string[]>([]);
+  const [savingCadence, setSavingCadence] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -80,6 +84,12 @@ export default function BrandDetailPage() {
         setPillars(b.content_pillars || []);
         const vc = b.voice_config as Record<string, unknown>;
         setSamplePosts((vc?.sample_posts as string[]) || []);
+        const cadence = vc?.posting_cadence as Record<string, unknown> | undefined;
+        if (cadence) {
+          setPostsPerWeek((cadence.posts_per_week as number) || 3);
+          setCadencePlatforms((cadence.platforms as string[]) || []);
+          setPreferredDays((cadence.preferred_days as string[]) || []);
+        }
       })
       .catch(() => {
         toast.error("Failed to load brand");
@@ -132,6 +142,29 @@ export default function BrandDetailPage() {
       toast.error("Failed to restore brand");
     } finally {
       setArchiving(false);
+    }
+  };
+
+  const handleSaveCadence = async () => {
+    if (!id || !brand) return;
+    setSavingCadence(true);
+    try {
+      const existingVc = (brand.voice_config as Record<string, unknown>) || {};
+      await updateBrand(id, {
+        voice_config: {
+          ...existingVc,
+          posting_cadence: {
+            posts_per_week: postsPerWeek,
+            platforms: cadencePlatforms,
+            preferred_days: preferredDays,
+          },
+        },
+      });
+      toast.success("Posting cadence saved");
+    } catch {
+      toast.error("Failed to save cadence");
+    } finally {
+      setSavingCadence(false);
     }
   };
 
@@ -303,6 +336,101 @@ export default function BrandDetailPage() {
                 <Input id="timezone" value={TIMEZONES.find(t => t.value === timezone)?.label ?? timezone} disabled />
               )}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Posting Cadence */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Posting Cadence</CardTitle>
+            <p className="text-xs text-text-muted mt-0.5">Set the default posting schedule used when generating a content plan for this brand.</p>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {isAdmin ? (
+              <>
+                {/* Posts per week */}
+                <div>
+                  <Label className="mb-2 block">Posts per week</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                      <button
+                        key={n}
+                        onClick={() => setPostsPerWeek(n)}
+                        className={`w-9 h-9 rounded-md text-sm font-medium transition-colors ${
+                          postsPerWeek === n
+                            ? "bg-primary text-white"
+                            : "bg-elevated border border-border text-text-muted hover:border-primary"
+                        }`}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Platforms */}
+                <div>
+                  <Label className="mb-2 block">Platforms</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {["linkedin", "instagram", "tiktok", "facebook", "x", "youtube"].map((p) => {
+                      const active = cadencePlatforms.includes(p);
+                      const label = p.charAt(0).toUpperCase() + p.slice(1);
+                      return (
+                        <button
+                          key={p}
+                          onClick={() =>
+                            setCadencePlatforms(
+                              active ? cadencePlatforms.filter((x) => x !== p) : [...cadencePlatforms, p]
+                            )
+                          }
+                          className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                            active
+                              ? "bg-primary text-white"
+                              : "bg-elevated border border-border text-text-muted hover:border-primary"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Preferred days */}
+                <div>
+                  <Label className="mb-2 block">Preferred posting days</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => {
+                      const active = preferredDays.includes(d);
+                      return (
+                        <button
+                          key={d}
+                          onClick={() =>
+                            setPreferredDays(
+                              active ? preferredDays.filter((x) => x !== d) : [...preferredDays, d]
+                            )
+                          }
+                          className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                            active
+                              ? "bg-primary text-white"
+                              : "bg-elevated border border-border text-text-muted hover:border-primary"
+                          }`}
+                        >
+                          {d}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <Button className="w-full" variant="ghost" disabled={savingCadence} onClick={handleSaveCadence}>
+                  <Save className="w-4 h-4 mr-2" />
+                  {savingCadence ? "Saving..." : "Save Posting Cadence"}
+                </Button>
+              </>
+            ) : (
+              <p className="text-xs text-text-muted">Contact your admin to update this.</p>
+            )}
           </CardContent>
         </Card>
 
