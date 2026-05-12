@@ -563,9 +563,13 @@ export default function BrandDetailPage() {
           brandIndustry={brand.industry || ""}
           onClose={() => setShowVoiceWizard(false)}
           onSaved={async () => {
-            const res = await getBrand(id);
-            setBrand(res.data);
-            toast.success("Voice config saved");
+            try {
+              const res = await getBrand(id);
+              setBrand(res.data);
+              toast.success("Voice config saved");
+            } catch {
+              toast.error("Failed to refresh brand");
+            }
           }}
         />
       )}
