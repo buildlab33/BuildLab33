@@ -245,6 +245,12 @@ export default function CalendarPage() {
     setClashSubmitting(true);
     try {
       await unschedulePost(clashData.clashingPost.id);
+    } catch {
+      toast.error("Failed to unschedule existing post");
+      setClashSubmitting(false);
+      return;
+    }
+    try {
       await forceSchedulePost(clashData.pendingPostId, clashData.pendingDateTime);
       toast.success("Existing post moved to draft. New post scheduled.");
       closeClashModal();
@@ -253,8 +259,9 @@ export default function CalendarPage() {
       setReschedulePost(null);
       loadPosts();
     } catch {
-      toast.error("Failed to replace post");
+      toast.error("Existing post was moved to draft, but scheduling the new post failed — please retry scheduling.");
       setClashSubmitting(false);
+      loadPosts();
     }
   };
 
