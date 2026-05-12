@@ -48,3 +48,7 @@ class ScheduleRequest(BaseModel):
 
 class RescheduleRequest(BaseModel):
     scheduled_at: str  # ISO 8601 datetime string, e.g. "2026-05-12T14:00:00+00:00"
+
+
+class ForceScheduleRequest(BaseModel):
+    scheduled_at: str  # ISO 8601 datetime string — no clash check applied
