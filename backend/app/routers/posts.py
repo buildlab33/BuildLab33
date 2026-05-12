@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 logger = logging.getLogger(__name__)
 
 from app.database import get_supabase
-from app.schemas.posts import PostCreate, PostOut, PostUpdate, RejectRequest, ScheduleRequest, RescheduleRequest
+from app.schemas.posts import PostCreate, PostOut, PostUpdate, RejectRequest, ScheduleRequest, RescheduleRequest, ForceScheduleRequest
 from app.security import current_user
 from app.services.notification_service import notify_admins, notify_user
 
@@ -239,6 +239,20 @@ async def schedule_post(post_id: str, body: ScheduleRequest, user: Annotated[dic
         raise HTTPException(status_code=400, detail="Invalid scheduled_at format — use ISO 8601")
     if scheduled_dt <= datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="scheduled_at must be in the future")
+    clash = _find_clash(sb, post["brand_id"], post["platform"], body.scheduled_at)
+    if clash:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "detail": "clash",
+                "clashing_post": {
+                    "id": clash["id"],
+                    "text": clash["text"],
+                    "platform": clash["platform"],
+                    "scheduled_at": clash["scheduled_at"],
+                },
+            },
+        )
     now = datetime.now(timezone.utc).isoformat()
     updated = sb.table("posts").update({
         "status": "scheduled",
@@ -291,6 +305,20 @@ async def reschedule_post(post_id: str, body: RescheduleRequest, user: Annotated
         raise HTTPException(status_code=400, detail="Invalid scheduled_at format — use ISO 8601")
     if scheduled_dt <= datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="scheduled_at must be in the future")
+    clash = _find_clash(sb, post["brand_id"], post["platform"], body.scheduled_at, exclude_post_id=post_id)
+    if clash:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "detail": "clash",
+                "clashing_post": {
+                    "id": clash["id"],
+                    "text": clash["text"],
+                    "platform": clash["platform"],
+                    "scheduled_at": clash["scheduled_at"],
+                },
+            },
+        )
     now = datetime.now(timezone.utc).isoformat()
     updated = sb.table("posts").update({
         "scheduled_at": body.scheduled_at,
