@@ -83,3 +83,28 @@ class VoiceConfigOut(BaseModel):
 class IngestUrlsRequest(BaseModel):
     urls: list[AnyHttpUrl] = Field(min_length=1, max_length=10)
     save: bool = False  # if True, auto-save the generated config to the brand
+
+
+class SourceResult(BaseModel):
+    source_label: str           # URL or "Pasted text"
+    char_count: int
+    warning: str | None = None  # "empty", "short", "js_rendered"
+    text: str                   # extracted/pasted text, capped at MAX_CHARS
+
+
+class AnalyseSourcesRequest(BaseModel):
+    urls: list[AnyHttpUrl] = Field(default=[], max_length=10)
+    pasted_texts: list[str] = Field(default=[])
+
+    @field_validator("pasted_texts")
+    @classmethod
+    def cap_pasted_texts(cls, v: list[str]) -> list[str]:
+        MAX = 5000
+        return [t[:MAX] for t in v]
+
+
+class AnalyseSourcesResponse(BaseModel):
+    sources: list[SourceResult]
+    combined_text: str
+    total_chars: int
+    has_warnings: bool
