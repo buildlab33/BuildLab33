@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from app.database import get_supabase
 from app.schemas.posts import PostCreate, PostOut, PostUpdate, RejectRequest, ScheduleRequest, RescheduleRequest
 from app.security import current_user
+from app.services.notification_service import notify_admins, notify_user
 
 router = APIRouter(prefix="/posts", tags=["posts"])
 
@@ -112,7 +113,15 @@ async def submit_post(post_id: str, user: Annotated[dict, Depends(current_user)]
     updated = sb.table("posts").update({"status": "pending", "updated_at": now}).eq("id", post_id).execute()
     if not updated.data:
         raise HTTPException(status_code=500, detail="Update failed or row no longer accessible")
-    return updated.data[0]
+    result = updated.data[0]
+    try:
+        notify_admins(
+            message=f"New post submitted for approval on {result['platform']}",
+            link=f"/dashboard/posts/{post_id}",
+        )
+    except Exception:
+        pass
+    return result
 
 
 @router.post("/{post_id}/approve", response_model=PostOut)
@@ -131,7 +140,16 @@ async def approve_post(post_id: str, user: Annotated[dict, Depends(current_user)
     updated = sb.table("posts").update({"status": "approved", "rejection_reason": None, "updated_at": now}).eq("id", post_id).execute()
     if not updated.data:
         raise HTTPException(status_code=500, detail="Update failed or row no longer accessible")
-    return updated.data[0]
+    result = updated.data[0]
+    try:
+        notify_user(
+            user_id=result["created_by"],
+            message="Your post has been approved",
+            link=f"/dashboard/posts/{post_id}",
+        )
+    except Exception:
+        pass
+    return result
 
 
 @router.post("/{post_id}/reject", response_model=PostOut)
@@ -150,7 +168,16 @@ async def reject_post(post_id: str, body: RejectRequest, user: Annotated[dict, D
     updated = sb.table("posts").update({"status": "rejected", "rejection_reason": body.reason, "updated_at": now}).eq("id", post_id).execute()
     if not updated.data:
         raise HTTPException(status_code=500, detail="Update failed or row no longer accessible")
-    return updated.data[0]
+    result = updated.data[0]
+    try:
+        notify_user(
+            user_id=result["created_by"],
+            message=f"Your post was rejected: {body.reason}",
+            link=f"/dashboard/posts/{post_id}",
+        )
+    except Exception:
+        pass
+    return result
 
 
 @router.delete("/{post_id}", status_code=204)
