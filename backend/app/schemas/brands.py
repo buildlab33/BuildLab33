@@ -94,7 +94,7 @@ class SourceResult(BaseModel):
 
 class AnalyseSourcesRequest(BaseModel):
     urls: list[AnyHttpUrl] = Field(default=[], max_length=10)
-    pasted_texts: list[str] = Field(default=[])
+    pasted_texts: list[str] = Field(default=[], max_length=10)
 
     @field_validator("pasted_texts")
     @classmethod
