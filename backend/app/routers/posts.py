@@ -24,6 +24,28 @@ def _require_admin(user: dict) -> None:
         raise HTTPException(status_code=403, detail="Admin access required")
 
 
+def _find_clash(sb, brand_id: str, platform: str, scheduled_at_iso: str, exclude_post_id: str | None = None) -> dict | None:
+    """Return the first scheduled post that clashes (same brand+platform+day), or None."""
+    scheduled_dt = datetime.fromisoformat(scheduled_at_iso.replace("Z", "+00:00"))
+    day_start = scheduled_dt.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+    day_end = scheduled_dt.replace(hour=23, minute=59, second=59, microsecond=999999).isoformat()
+    query = (
+        sb.table("posts")
+        .select("id, text, platform, scheduled_at, brand_id")
+        .eq("brand_id", brand_id)
+        .eq("platform", platform)
+        .eq("status", "scheduled")
+        .gte("scheduled_at", day_start)
+        .lte("scheduled_at", day_end)
+    )
+    res = query.execute()
+    for row in (res.data or []):
+        if exclude_post_id and row["id"] == exclude_post_id:
+            continue
+        return row
+    return None
+
+
 @router.get("", response_model=list[PostOut])
 async def list_posts(
     user: Annotated[dict, Depends(current_user)],
