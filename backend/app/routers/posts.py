@@ -339,8 +339,8 @@ async def force_schedule_post(post_id: str, body: ForceScheduleRequest, user: An
     post = res.data[0]
     if user.get("role") not in ADMIN_ROLES and post["created_by"] != user["sub"]:
         raise HTTPException(status_code=403, detail="Access denied")
-    if post["status"] != "approved":
-        raise HTTPException(status_code=400, detail=f"Only approved posts can be force-scheduled (current: {post['status']})")
+    if post["status"] not in {"approved", "scheduled"}:
+        raise HTTPException(status_code=400, detail=f"Only approved or scheduled posts can be force-scheduled (current: {post['status']})")
     try:
         scheduled_dt = datetime.fromisoformat(body.scheduled_at.replace("Z", "+00:00"))
     except ValueError:
