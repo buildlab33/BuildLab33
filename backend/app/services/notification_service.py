@@ -17,6 +17,8 @@ def notify_admins(message: str, link: str | None = None) -> None:
 
 def notify_user(user_id: str, message: str, link: str | None = None) -> None:
     """Insert a notification row for a specific user."""
+    if not user_id:
+        return
     sb = get_supabase()
     sb.table("notifications").insert(
         {"user_id": user_id, "type": "info", "message": message, "link": link, "read": False}

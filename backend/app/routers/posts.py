@@ -1,9 +1,12 @@
 # backend/app/routers/posts.py
 """Posts CRUD and approval workflow."""
+import logging
 from datetime import datetime, timezone
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+
+logger = logging.getLogger(__name__)
 
 from app.database import get_supabase
 from app.schemas.posts import PostCreate, PostOut, PostUpdate, RejectRequest, ScheduleRequest, RescheduleRequest
@@ -119,8 +122,8 @@ async def submit_post(post_id: str, user: Annotated[dict, Depends(current_user)]
             message=f"New post submitted for approval on {result['platform']}",
             link=f"/dashboard/posts/{post_id}",
         )
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("notify failed for post %s: %s", post_id, exc)
     return result
 
 
@@ -147,8 +150,8 @@ async def approve_post(post_id: str, user: Annotated[dict, Depends(current_user)
             message="Your post has been approved",
             link=f"/dashboard/posts/{post_id}",
         )
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("notify failed for post %s: %s", post_id, exc)
     return result
 
 
@@ -175,8 +178,8 @@ async def reject_post(post_id: str, body: RejectRequest, user: Annotated[dict, D
             message=f"Your post was rejected: {body.reason}",
             link=f"/dashboard/posts/{post_id}",
         )
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("notify failed for post %s: %s", post_id, exc)
     return result
 
 
