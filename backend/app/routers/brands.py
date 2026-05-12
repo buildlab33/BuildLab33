@@ -1,4 +1,5 @@
 """Brand CRUD and AI voice interview endpoints."""
+from datetime import datetime, timezone
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
@@ -102,7 +103,7 @@ async def ingest_urls(
     if not brand:
         raise HTTPException(status_code=404, detail="Brand not found")
 
-    scraped_text = await scrape_urls(body.urls)
+    scraped_text = await scrape_urls([str(u) for u in body.urls])
     if not scraped_text.strip():
         raise HTTPException(status_code=422, detail="Could not extract content from any of the provided URLs")
 
@@ -115,10 +116,12 @@ async def ingest_urls(
     )
 
     if body.save:
-        sb = get_supabase()
-        from datetime import datetime, timezone
-        now = datetime.now(timezone.utc).isoformat()
-        sb.table("brands").update({"voice_config": config, "updated_at": now}).eq("id", brand_id).execute()
+        try:
+            sb = get_supabase()
+            now = datetime.now(timezone.utc).isoformat()
+            sb.table("brands").update({"voice_config": config, "updated_at": now}).eq("id", brand_id).execute()
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"Failed to save voice config: {exc}")
 
     return config
 

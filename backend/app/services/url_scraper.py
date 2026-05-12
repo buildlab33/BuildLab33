@@ -1,4 +1,5 @@
 """Fetch and extract readable text from URLs for brand voice ingestion."""
+import asyncio
 import logging
 import re
 import httpx
@@ -14,7 +15,7 @@ def _strip_html(html: str) -> str:
     """Remove tags, scripts, styles, collapse whitespace."""
     html = re.sub(r"<(script|style)[^>]*>.*?</(script|style)>", "", html, flags=re.DOTALL | re.IGNORECASE)
     html = re.sub(r"<[^>]+>", " ", html)
-    html = re.sub(r"&[a-z]+;", " ", html)
+    html = re.sub(r"&#?\w+;", " ", html)
     html = re.sub(r"\s+", " ", html)
     return html.strip()
 
@@ -34,7 +35,6 @@ async def fetch_url_text(url: str) -> str:
 
 async def scrape_urls(urls: list[str]) -> str:
     """Fetch all URLs concurrently and join their text with separators."""
-    import asyncio
     results = await asyncio.gather(*[fetch_url_text(u) for u in urls])
     parts = [f"[Source: {url}]\n{text}" for url, text in zip(urls, results) if text.strip()]
     return "\n\n---\n\n".join(parts)

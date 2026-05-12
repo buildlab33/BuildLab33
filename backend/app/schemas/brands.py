@@ -1,6 +1,6 @@
 """Pydantic schemas for brand endpoints."""
 from typing import Any, Literal, Optional
-from pydantic import BaseModel, Field, field_validator
+from pydantic import AnyHttpUrl, BaseModel, Field, field_validator
 
 
 class ContentPillar(BaseModel):
@@ -81,5 +81,5 @@ class VoiceConfigOut(BaseModel):
 
 
 class IngestUrlsRequest(BaseModel):
-    urls: list[str] = Field(min_length=1, max_length=10)
+    urls: list[AnyHttpUrl] = Field(min_length=1, max_length=10)
     save: bool = False  # if True, auto-save the generated config to the brand
