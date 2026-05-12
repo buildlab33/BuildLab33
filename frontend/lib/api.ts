@@ -161,6 +161,9 @@ export const generateVoiceConfig = (data: {
   sample_posts: string[];
 }) => api.post("/api/brands/generate-voice-config", data);
 
+export const ingestBrandUrls = (brandId: string, urls: string[], save: boolean) =>
+  api.post(`/api/brands/${brandId}/ingest-urls`, { urls, save });
+
 // ── Generate ──────────────────────────────────────────────────────────────
 
 export const generatePost = (payload: {

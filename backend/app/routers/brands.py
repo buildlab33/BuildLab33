@@ -8,6 +8,7 @@ from app.schemas.brands import (
     BrandDetail,
     BrandUpdate,
     GenerateVoiceConfigRequest,
+    IngestUrlsRequest,
 )
 from app.security import current_user
 from app.services.brand_service import (
@@ -22,6 +23,7 @@ from app.services.brand_service import (
     update_brand,
 )
 from app.services.anthropic_service import generate_voice_config
+from app.services.url_scraper import scrape_urls
 
 router = APIRouter(prefix="/brands", tags=["brands"])
 
@@ -83,6 +85,42 @@ async def generate_voice_config_endpoint(
         return config
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Voice config generation failed: {str(e)}")
+
+
+# ── Ingest URLs ───────────────────────────────────────────────────────────────
+
+@router.post("/{brand_id}/ingest-urls")
+async def ingest_urls(
+    brand_id: str,
+    body: IngestUrlsRequest,
+    user: Annotated[dict, Depends(current_user)],
+):
+    """Scrape URLs and generate a brand voice config from the content."""
+    if user["role"] not in ("super_admin", "admin"):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    brand = get_brand(brand_id)
+    if not brand:
+        raise HTTPException(status_code=404, detail="Brand not found")
+
+    scraped_text = await scrape_urls(body.urls)
+    if not scraped_text.strip():
+        raise HTTPException(status_code=422, detail="Could not extract content from any of the provided URLs")
+
+    # Use scraped text as a single "sample post" block fed to existing voice config generator
+    config = await generate_voice_config(
+        brand_name=brand["name"],
+        industry=brand.get("industry", ""),
+        interview_answers=[],
+        sample_posts=[scraped_text],
+    )
+
+    if body.save:
+        sb = get_supabase()
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc).isoformat()
+        sb.table("brands").update({"voice_config": config, "updated_at": now}).eq("id", brand_id).execute()
+
+    return config
 
 
 # ── List brands ────────────────────────────────────────────────────────────────

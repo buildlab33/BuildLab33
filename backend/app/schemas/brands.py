@@ -78,3 +78,8 @@ class VoiceConfigOut(BaseModel):
     word_bank: list[str]
     avoid: list[str]
     sample_prompts: list[str]
+
+
+class IngestUrlsRequest(BaseModel):
+    urls: list[str] = Field(min_length=1, max_length=10)
+    save: bool = False  # if True, auto-save the generated config to the brand
