@@ -33,28 +33,92 @@ from app.services.url_scraper import analyse_sources
 router = APIRouter(prefix="/brands", tags=["brands"])
 
 INTERVIEW_QUESTIONS = [
-    "What is the primary mission or purpose of this brand?",
-    "What industry or sector does this brand operate in?",
-    "Who is the ideal customer or target audience for this brand?",
-    "What are the top 3 problems this brand solves for its customers?",
-    "How would you describe the brand's personality in 3–5 words?",
-    "What tone should content use — formal, conversational, inspirational, authoritative, or playful?",
-    "What topics or themes should content focus on (content pillars)?",
-    "Which social media platforms are most important for this brand?",
-    "What are the brand's key differentiators from competitors?",
-    "Who are the brand's main competitors, and what should we do differently?",
-    "What words, phrases, or topics should the brand NEVER use?",
-    "Does the brand use industry jargon or prefer plain language?",
-    "What emotional response should the brand evoke in its audience?",
-    "What is the brand's stance on thought leadership — do they share opinions or stay neutral?",
-    "Describe the ideal customer profile: job title, company size, industry, pain points.",
-    "What is the brand's geographic focus — local, regional, or global?",
-    "How formal or casual should the language be on a scale of 1–10?",
-    "What objections do prospects typically have, and how does the brand address them?",
-    "What does success look like for this brand's content — engagement, leads, awareness?",
-    "Are there cultural sensitivities or regional considerations to keep in mind?",
-    "Does the brand have seasonal campaigns or recurring content themes?",
-    "What are 3 examples of brands (inside or outside the industry) whose content style you admire?",
+    # ── Stage 1: Core (required, ~60 seconds) ─────────────────────────────
+    {
+        "index": 0,
+        "stage": 1,
+        "question": "What does your brand do, and who is it for?",
+        "input_type": "text",
+        "placeholder": "e.g. We help SaaS founders reduce churn through better onboarding",
+        "hint": "1–2 sentences is enough. This is the most important question.",
+    },
+    {
+        "index": 1,
+        "stage": 1,
+        "question": "Who are you writing for?",
+        "input_type": "single_chip",
+        "chips": [
+            "Startup Founders",
+            "SME Business Owners",
+            "Corporate Executives",
+            "Marketing Professionals",
+            "Tech Teams",
+            "General Consumers",
+        ],
+        "hint": "Pick the closest match. You can refine with 'Other'.",
+    },
+    {
+        "index": 2,
+        "stage": 1,
+        "question": "Pick up to 3 words that describe how your brand should sound.",
+        "input_type": "multi_chip",
+        "max_select": 3,
+        "chips": [
+            "Bold", "Warm", "Authoritative", "Conversational",
+            "Inspiring", "Direct", "Playful", "Expert",
+            "Empathetic", "Premium",
+        ],
+        "hint": "Choose 3. These become your brand's voice fingerprint.",
+    },
+    {
+        "index": 3,
+        "stage": 1,
+        "question": "What should this brand NEVER say or do in content?",
+        "input_type": "text",
+        "placeholder": "e.g. Never mention competitors by name. Avoid aggressive sales language.",
+        "hint": "Off-limits topics, phrases, or tones. Leave blank if none.",
+    },
+    # ── Stage 2: Depth (optional, unlocks after Stage 1) ──────────────────
+    {
+        "index": 4,
+        "stage": 2,
+        "question": "What are the 2–3 biggest problems your brand solves for customers?",
+        "input_type": "text",
+        "placeholder": "e.g. Our clients waste 3 hours a day on manual reporting. We fix that.",
+        "hint": "Specific pain points produce the most compelling content.",
+    },
+    {
+        "index": 5,
+        "stage": 2,
+        "question": "What makes your brand different from competitors?",
+        "input_type": "text",
+        "placeholder": "e.g. We're the only agency that focuses exclusively on B2B SaaS in SEA.",
+        "hint": "One or two sentences. This sharpens the positioning angle in every post.",
+    },
+    {
+        "index": 6,
+        "stage": 2,
+        "question": "What kind of content do you want to lead with?",
+        "input_type": "multi_chip",
+        "max_select": 2,
+        "chips": [
+            "Thought Leadership",
+            "Client Results / Case Studies",
+            "Educational Tips",
+            "Behind the Scenes",
+            "Industry News & Takes",
+            "Promotional",
+        ],
+        "hint": "Pick 1–2. This sets the default angle for all generated posts.",
+    },
+    {
+        "index": 7,
+        "stage": 2,
+        "question": "Paste 1–3 examples of content whose style you want to match.",
+        "input_type": "text",
+        "placeholder": "Paste real posts or captions from any brand you admire…",
+        "hint": "Optional but powerful — real examples beat any description.",
+    },
 ]
 
 
@@ -62,12 +126,8 @@ INTERVIEW_QUESTIONS = [
 
 @router.get("/interview-questions")
 async def get_interview_questions(_: Annotated[dict, Depends(current_user)]):
-    """Return the list of AI interview questions for brand voice creation."""
-    return {
-        "questions": [
-            {"index": i, "question": q} for i, q in enumerate(INTERVIEW_QUESTIONS)
-        ]
-    }
+    """Return the structured interview questions for brand voice creation."""
+    return {"questions": INTERVIEW_QUESTIONS}
 
 
 # ── Generate voice config ──────────────────────────────────────────────────────
