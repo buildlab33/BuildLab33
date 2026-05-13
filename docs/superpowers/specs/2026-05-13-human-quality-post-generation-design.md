@@ -272,3 +272,104 @@ class PostGenerateRequest(BaseModel):
 3. Posts pass a "does this sound like a real person wrote it" gut-check without editing
 4. Users can save a custom chip and see it in future sessions
 5. Admins can add/remove global default chips without a code deploy
+
+---
+
+## Section 6: Brand Voice Interview Redesign
+
+### Problem with current interview
+
+The existing interview has 22 open-text questions asked in one long form. Users who are new, time-pressured, or frustrated give low-quality answers — which produces a voice config worse than the default fallback. The interview needs to feel friendly and fast, not like a compliance form.
+
+### New structure: 3-stage progressive interview
+
+**Stage 1 — Core (4 questions, chip-assisted, ~60 seconds)**
+Required. Unlocks voice config generation on its own.
+
+**Stage 2 — Depth (4 questions, ~2 minutes)**
+Optional. Shown after Stage 1 with a "want sharper results?" prompt. User can skip straight to Generate.
+
+**Stage 3 — Sample posts (optional, existing feature)**
+Paste real published posts. Unchanged from current implementation.
+
+---
+
+### Stage 1 Questions
+
+**Q1 — What does your brand do, and who is it for?**
+- Type: Short open text (1–2 sentences)
+- Why: The single highest-signal input. Everything the AI writes — angle, vocabulary, examples — traces back to this. A brand helping SaaS founders reduce churn writes completely differently from one helping F&B businesses attract foot traffic. No tone keywords compensate for missing this.
+
+**Q2 — Who are you writing for?**
+- Type: Single-select chips + Other
+- Chips: `Startup Founders` · `SME Business Owners` · `Corporate Executives` · `Marketing Professionals` · `Tech Teams` · `General Consumers`
+- Why: The audience determines vocabulary level, formality, pain points to reference, and what counts as credible. Writing for a CMO sounds nothing like writing for a small business owner. Chips work here because most brands clearly fit one bucket — open text adds friction with no quality gain.
+
+**Q3 — Pick up to 3 words that describe how your brand should sound.**
+- Type: Multi-select chips (max 3) + Other
+- Chips: `Bold` · `Warm` · `Authoritative` · `Conversational` · `Inspiring` · `Direct` · `Playful` · `Expert` · `Empathetic` · `Premium`
+- Why: Three adjectives give the AI a concrete personality triangle. "Bold, Direct, Expert" produces very different copy from "Warm, Conversational, Empathetic." Replaces both the separate tone question and the formality scale — personality chips capture both in one step.
+
+**Q4 — What should this brand NEVER say or do in content?**
+- Type: Short open text (e.g. "don't mention competitors by name", "never use aggressive sales language")
+- Why: Off-limits is a hard constraint, not a soft preference. Missing it means the AI may produce content that embarrasses the brand or violates a client agreement. Most people know their red lines immediately — this question is fast to answer and protects the brand.
+
+---
+
+### Stage 2 Questions
+
+Shown after Stage 1 completes, under the heading: **"Want sharper, more specific results? Answer 4 more questions."** Skip link always visible.
+
+**Q5 — What are the 2–3 biggest problems your brand solves for customers?**
+- Type: Open text
+- Why: The best marketing content is rooted in real pain points. When the AI knows "clients come to us because they waste 3 hours a day on manual reporting," it writes posts that make the audience feel seen. Without this, posts default to generic benefit statements. Stage 2 because the AI generates decent content without it — but noticeably better with it.
+
+**Q6 — What makes your brand different from competitors?**
+- Type: Open text (1–2 sentences)
+- Why: Sharpens the positioning angle. A brand that differentiates on speed writes differently from one that differentiates on trust or relationships. Without this the AI defaults to safe middle-ground positioning that sounds like everyone else.
+
+**Q7 — What kind of content do you want to lead with?**
+- Type: Multi-select chips (pick 1–2) + Other
+- Chips: `Thought Leadership` · `Client Results / Case Studies` · `Educational Tips` · `Behind the Scenes` · `Industry News & Takes` · `Promotional`
+- Why: Sets the content pillar direction — tells the AI what "good content" looks like for this brand. Without this signal the AI picks a random angle each time, producing inconsistent output across posts.
+
+**Q8 — Paste 1–3 examples of content whose style you want to match.**
+- Type: Optional open text (any brand, any platform)
+- Why: The highest-quality voice signal of all. Real examples are worth more than any description — "write like this" beats "be authoritative and warm" every time. The AI studies rhythm, sentence length, vocabulary, and hooks directly from the examples. Optional because not everyone has examples ready, but users who provide them get noticeably better output.
+
+---
+
+### Questions removed from current set (and why)
+
+| Removed question | Reason |
+|-----------------|--------|
+| Industry/sector | Already stored on the brand profile — auto-populated, no need to ask again |
+| Key differentiators (separate from Q6) | Merged into Q6 |
+| Competitors + what to do differently | Too detailed for onboarding; overlaps Q6 |
+| Industry jargon vs plain language | Captured by tone personality chips (Q3) |
+| Ideal customer profile detail | Duplicates Q2 in more words |
+| Geographic focus | Rarely affects post copy directly |
+| Formality scale 1–10 | Duplicates Q3 chips |
+| Objections prospects have | Useful but too advanced for this stage |
+| Content success definition | Affects strategy not voice |
+| Cultural sensitivities | Edge case — can be added to off-limits (Q4) manually |
+| Seasonal campaigns | Operational detail, not voice |
+| Platforms that matter most | Already set per-post at generation time |
+| Emotional response to evoke | Captured by personality chips (Q3) |
+| Thought leadership stance | Captured by content type chips (Q7) |
+
+---
+
+### Backend changes for interview redesign
+
+| File | Change |
+|------|--------|
+| `app/routers/brands.py` | Replace `INTERVIEW_QUESTIONS` list with the new 8-question structure; add `stage` field to each question; add `input_type` field (text / single_chip / multi_chip); add `chips` array where applicable |
+| `app/schemas/brands.py` | Update `InterviewQuestion` schema to include `stage`, `input_type`, `chips`, `max_select` |
+| `app/services/anthropic_service.py` | Update `generate_voice_config` prompt to handle the new answer shapes (chip selections vs open text) |
+
+### Frontend changes for interview redesign
+
+| File | Change |
+|------|--------|
+| `frontend/components/domain/BrandVoiceWizard.tsx` | Replace open-text question list with Stage 1 / Stage 2 layout; render chip-select inputs for Q2, Q3, Q7; render text inputs for Q1, Q4, Q5, Q6, Q8; add "Skip to Generate" affordance on Stage 2 |
