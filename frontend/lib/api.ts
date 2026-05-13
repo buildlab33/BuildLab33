@@ -129,6 +129,7 @@ export interface InterviewAnswer {
   question_index: number;
   question: string;
   answer: string;
+  stage: number;  // 1 = Core, 2 = Depth
 }
 
 export const getBrands = (includeArchived = false) =>

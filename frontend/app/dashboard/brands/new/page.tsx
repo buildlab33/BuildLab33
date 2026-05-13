@@ -81,7 +81,7 @@ export default function NewBrandPage() {
     setGeneratingConfig(true);
     const interviewAnswers: InterviewAnswer[] = questions
       .filter((q) => (answers[q.index] || "").trim())
-      .map((q) => ({ question_index: q.index, question: q.question, answer: answers[q.index] }));
+      .map((q) => ({ question_index: q.index, question: q.question, answer: answers[q.index], stage: 1 }));
     const validSamples = samplePosts.filter((p) => p.trim().length > 0);
     try {
       const res = await generateVoiceConfig({
