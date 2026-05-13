@@ -161,11 +161,9 @@ async def generate_voice_config(
     sample_posts: list[str],
 ) -> dict:
     """Use Claude to synthesise interview answers + sample posts into a brand voice config."""
-    from app.config import get_settings
-    import anthropic
     import json
     settings = get_settings()
-    client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+    client = Anthropic(api_key=settings.anthropic_api_key)
 
     prompt = _build_voice_config_prompt(brand_name, industry, interview_answers, sample_posts)
 
