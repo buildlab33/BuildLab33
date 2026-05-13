@@ -62,6 +62,7 @@ class InterviewAnswer(BaseModel):
     question_index: int
     question: str
     answer: str
+    stage: int = 1  # 1 = Core, 2 = Depth
 
 
 class GenerateVoiceConfigRequest(BaseModel):
