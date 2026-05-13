@@ -118,7 +118,7 @@ function GenerateForm() {
         subtitle="AI-powered post generation with brand voice"
       />
 
-      <div className="grid gap-6" style={{ gridTemplateColumns: "1fr 1fr" }}>
+      <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
         {/* Form */}
         <Card>
           <form onSubmit={handleGenerate}>
@@ -241,22 +241,23 @@ function GenerateForm() {
               <div className="mt-4 flex gap-2 flex-wrap">
                 <Button
                   className="text-xs"
-                  onClick={() => handleSave(false)}
-                  disabled={saving}
-                >
-                  {saving ? "Saving..." : "Save as Draft"}
-                </Button>
-                <Button
-                  className="text-xs"
                   onClick={() => handleSave(true)}
                   disabled={saving}
                 >
                   {saving ? "Saving..." : "Submit for Approval"}
                 </Button>
+                <Button
+                  variant="ghost"
+                  className="text-xs border border-border"
+                  onClick={() => handleSave(false)}
+                  disabled={saving}
+                >
+                  {saving ? "Saving..." : "Save as Draft"}
+                </Button>
                 <Button variant="ghost" onClick={handleCopy} className="text-xs">
                   {copied ? "✓ Copied" : "Copy"}
                 </Button>
-                <Button variant="ghost" onClick={handleGenerate} className="text-xs">
+                <Button variant="ghost" className="text-xs border border-border" onClick={handleGenerate}>
                   Regenerate
                 </Button>
               </div>

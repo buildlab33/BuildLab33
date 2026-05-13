@@ -5,7 +5,8 @@ import { getBrands } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BrandBadge } from "@/components/domain/BrandBadge";
+import { Sparkles, FileText } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/layout/PageHeader";
 
 interface Brand {
@@ -21,9 +22,13 @@ export default function DashboardPage() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const [brands, setBrands] = useState<Brand[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getBrands().then((res) => setBrands(res.data?.brands || [])).catch(() => {});
+    getBrands()
+      .then((res) => setBrands(res.data?.brands || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
   const greeting = () => {
@@ -45,9 +50,9 @@ export default function DashboardPage() {
         <Card
           clickable
           onClick={() => router.push("/dashboard/generate")}
-          className="text-left border-2 border-dashed border-border"
+          className="text-left border-2 border-dashed border-primary/40 bg-primary-muted/30"
         >
-          <div className="text-2xl mb-2">✦</div>
+          <Sparkles size={20} className="mb-2 text-primary" />
           <div className="font-bold mb-1 text-text-primary">Generate Content</div>
           <div className="text-xs text-text-muted">AI-powered post creation</div>
         </Card>
@@ -56,7 +61,7 @@ export default function DashboardPage() {
           onClick={() => router.push("/dashboard/posts")}
           className="text-left border-2 border-dashed border-border"
         >
-          <div className="text-2xl mb-2">☰</div>
+          <FileText size={20} className="mb-2 text-text-muted" />
           <div className="font-bold mb-1 text-text-primary">View Posts</div>
           <div className="text-xs text-text-muted">Manage content pipeline</div>
         </Card>
@@ -65,7 +70,20 @@ export default function DashboardPage() {
       {/* Brands */}
       <h2 className="text-sm font-bold text-text-primary mb-4">Your Brands</h2>
       <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
-        {brands.map((brand) => (
+        {loading ? (
+          Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i}>
+              <div className="flex items-center gap-3 mb-4">
+                <Skeleton className="w-10 h-10 rounded-md flex-shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-3 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+              </div>
+              <Skeleton className="h-8 w-full rounded-md" />
+            </Card>
+          ))
+        ) : brands.map((brand) => (
           <Card
             key={brand.id}
             clickable
@@ -99,3 +117,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+

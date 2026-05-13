@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { BrandBadge } from "@/components/domain/BrandBadge";
 import { StatusBadge } from "@/components/domain/StatusBadge";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { FileText } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "@/components/ui/toast";
 
@@ -21,6 +23,7 @@ export default function PostsPage() {
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const getBrandName = (id: string) => brands.find((b) => b.id === id)?.name ?? id;
 
@@ -62,9 +65,14 @@ export default function PostsPage() {
     }
   };
 
-  const handleDelete = async (e: React.MouseEvent, post: PostItem) => {
+  const handleDeleteClick = (e: React.MouseEvent, post: PostItem) => {
     e.stopPropagation();
-    if (!confirm("Delete this draft? This cannot be undone.")) return;
+    setDeleteConfirm(post.id);
+  };
+
+  const handleDeleteConfirm = async (e: React.MouseEvent, post: PostItem) => {
+    e.stopPropagation();
+    setDeleteConfirm(null);
     setActionLoading(post.id);
     try {
       await deletePost(post.id);
@@ -111,7 +119,25 @@ export default function PostsPage() {
 
       {/* Posts list */}
       {loading ? (
-        <div className="text-center py-16 text-text-muted text-sm">Loading...</div>
+        <div className="flex flex-col gap-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i}>
+              <div className="flex justify-between items-start mb-3">
+                <div className="flex gap-2 items-center">
+                  <Skeleton className="h-5 w-20 rounded-full" />
+                  <Skeleton className="h-5 w-16 rounded-full" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-5 w-20 rounded-full" />
+                  <Skeleton className="h-4 w-16" />
+                </div>
+              </div>
+              <Skeleton className="h-4 w-full mb-2" />
+              <Skeleton className="h-4 w-5/6 mb-2" />
+              <Skeleton className="h-4 w-3/4" />
+            </Card>
+          ))}
+        </div>
       ) : (
         <div className="flex flex-col gap-3">
           {posts.map((post) => (
@@ -150,14 +176,34 @@ export default function PostsPage() {
                     >
                       Submit for Approval
                     </Button>
-                    <Button
-                      variant="ghost"
-                      className="text-xs px-3 py-1.5 h-auto text-error hover:text-error"
-                      disabled={actionLoading === post.id}
-                      onClick={(e) => handleDelete(e, post)}
-                    >
-                      Delete
-                    </Button>
+                    {deleteConfirm === post.id ? (
+                      <>
+                        <Button
+                          variant="ghost"
+                          className="text-xs px-3 py-1.5 h-auto text-error hover:text-error border border-error/40"
+                          disabled={actionLoading === post.id}
+                          onClick={(e) => handleDeleteConfirm(e, post)}
+                        >
+                          Confirm Delete
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          className="text-xs px-3 py-1.5 h-auto"
+                          onClick={(e) => { e.stopPropagation(); setDeleteConfirm(null); }}
+                        >
+                          Cancel
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        className="text-xs px-3 py-1.5 h-auto text-error hover:text-error"
+                        disabled={actionLoading === post.id}
+                        onClick={(e) => handleDeleteClick(e, post)}
+                      >
+                        Delete
+                      </Button>
+                    )}
                   </>
                 )}
                 {post.status === "rejected" && (
@@ -183,7 +229,7 @@ export default function PostsPage() {
 
           {posts.length === 0 && !loading && (
             <div className="text-center py-16 text-text-muted">
-              <div className="text-3xl mb-3">☰</div>
+              <FileText size={32} className="mx-auto mb-3 text-text-muted/50" />
               <div className="text-sm">No posts found</div>
               <Button className="mt-4" onClick={() => router.push("/dashboard/generate")}>
                 Generate your first post

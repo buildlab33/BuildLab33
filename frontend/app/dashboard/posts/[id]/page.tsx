@@ -10,6 +10,7 @@ import { useAuthStore } from "@/store/auth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { BrandBadge } from "@/components/domain/BrandBadge";
 import { StatusBadge } from "@/components/domain/StatusBadge";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -31,6 +32,7 @@ export default function PostDetailPage() {
   const [schedDate, setSchedDate] = useState("");
   const [schedTime, setSchedTime] = useState("09:00");
   const [scheduling, setScheduling] = useState(false);
+  const [schedError, setSchedError] = useState("");
 
   const getBrandName = (id: string) => brands.find((b) => b.id === id)?.name ?? id;
 
@@ -120,9 +122,14 @@ export default function PostDetailPage() {
 
   const handleSchedule = async () => {
     if (!post || !schedDate) return;
+    const scheduled_at = new Date(`${schedDate}T${schedTime}:00`).toISOString();
+    if (new Date(scheduled_at) <= new Date()) {
+      setSchedError("Date and time must be in the future.");
+      return;
+    }
+    setSchedError("");
     setScheduling(true);
     try {
-      const scheduled_at = new Date(`${schedDate}T${schedTime}:00`).toISOString();
       const res = await schedulePost(post.id, scheduled_at);
       setPost(res.data);
       toast.success("Post scheduled");
@@ -149,7 +156,24 @@ export default function PostDetailPage() {
 
   if (loading) {
     return (
-      <div className="text-center py-16 text-text-muted text-sm">Loading...</div>
+      <div>
+        <div className="mb-6">
+          <Skeleton className="h-7 w-48 mb-2" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+        <div className="flex gap-2 mb-6">
+          <Skeleton className="h-6 w-24 rounded-full" />
+          <Skeleton className="h-6 w-20 rounded-full" />
+          <Skeleton className="h-6 w-20 rounded-full" />
+        </div>
+        <Card className="mb-4">
+          <Skeleton className="h-4 w-24 mb-3" />
+          <Skeleton className="h-4 w-full mb-2" />
+          <Skeleton className="h-4 w-5/6 mb-2" />
+          <Skeleton className="h-4 w-4/5 mb-2" />
+          <Skeleton className="h-4 w-3/4" />
+        </Card>
+      </div>
     );
   }
 
@@ -245,22 +269,28 @@ export default function PostDetailPage() {
               <p className="text-sm font-semibold text-text-primary mb-1">Schedule this post</p>
               <p className="text-xs text-text-muted">Pick a date and time to put it on the calendar.</p>
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <input
-                type="date"
-                value={schedDate}
-                onChange={(e) => setSchedDate(e.target.value)}
-                className="rounded-md border border-border bg-elevated px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary"
-              />
-              <input
-                type="time"
-                value={schedTime}
-                onChange={(e) => setSchedTime(e.target.value)}
-                className="rounded-md border border-border bg-elevated px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary"
-              />
-              <Button onClick={handleSchedule} disabled={scheduling || !schedDate}>
-                {scheduling ? "Scheduling..." : "Schedule"}
-              </Button>
+            <div className="flex flex-col items-end gap-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <input
+                  type="date"
+                  value={schedDate}
+                  min={new Date().toISOString().split("T")[0]}
+                  onChange={(e) => { setSchedDate(e.target.value); setSchedError(""); }}
+                  className={`rounded-md border bg-elevated px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary ${schedError ? "border-error" : "border-border"}`}
+                />
+                <input
+                  type="time"
+                  value={schedTime}
+                  onChange={(e) => { setSchedTime(e.target.value); setSchedError(""); }}
+                  className={`rounded-md border bg-elevated px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary ${schedError ? "border-error" : "border-border"}`}
+                />
+                <Button onClick={handleSchedule} disabled={scheduling || !schedDate}>
+                  {scheduling ? "Scheduling..." : "Schedule"}
+                </Button>
+              </div>
+              {schedError && (
+                <p className="text-xs text-error">{schedError}</p>
+              )}
             </div>
           </div>
         </Card>
