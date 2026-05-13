@@ -6,6 +6,7 @@ import {
   getBrand,
   updateBrand,
   type AnalyseSourcesResponse,
+  type InterviewAnswer,
   type SourceResult,
   type VoiceConfigResult,
 } from "@/lib/api";
@@ -21,7 +22,7 @@ interface Props {
   onSaved: () => void;
 }
 
-type WizardStep = "source" | "review" | "generate" | "config";
+type WizardStep = "interview" | "source" | "review" | "generate" | "config";
 
 const PLATFORM_ORDER = ["linkedin", "instagram", "tiktok", "facebook", "x", "youtube"];
 const MAX_PASTE_CHARS = 5000;
@@ -47,7 +48,11 @@ function WarningBadge({ warning }: { warning: SourceResult["warning"] }) {
 export default function BrandVoiceWizard({ brandId, brandName, brandIndustry, onClose, onSaved }: Props) {
   const backdropRef = useRef<HTMLDivElement>(null);
 
-  const [step, setStep] = useState<WizardStep>("source");
+  const [step, setStep] = useState<WizardStep>("interview");
+
+  // Interview state
+  const [interviewAnswers, setInterviewAnswers] = useState<Record<number, string>>({});
+  const [showStage2, setShowStage2] = useState(false);
 
   // Step 1 state
   const [urlInput, setUrlInput] = useState("");
@@ -132,6 +137,17 @@ export default function BrandVoiceWizard({ brandId, brandName, brandIndustry, on
 
   // ── Step 3: generation ────────────────────────────────────────────────
 
+  const QUESTIONS_META = [
+    { question: "What does your brand do, and who is it for?", stage: 1 },
+    { question: "Who are you writing for?", stage: 1 },
+    { question: "Pick up to 3 words that describe how your brand should sound.", stage: 1 },
+    { question: "What should this brand NEVER say or do in content?", stage: 1 },
+    { question: "What are the 2–3 biggest problems your brand solves for customers?", stage: 2 },
+    { question: "What makes your brand different from competitors?", stage: 2 },
+    { question: "What kind of content do you want to lead with?", stage: 2 },
+    { question: "Paste 1–3 examples of content whose style you want to match.", stage: 2 },
+  ];
+
   const runGeneration = useCallback(async () => {
     setGenerating(true);
     setGenerateError("");
@@ -142,12 +158,24 @@ export default function BrandVoiceWizard({ brandId, brandName, brandIndustry, on
         .map((s) => `[Source: ${s.source_label}]\n${s.text}`)
         .join("\n\n---\n\n");
 
+      const builtAnswers: InterviewAnswer[] = Object.entries(interviewAnswers)
+        .filter(([, answer]) => answer.trim())
+        .map(([indexStr, answer]) => {
+          const idx = parseInt(indexStr);
+          return {
+            question_index: idx,
+            question: QUESTIONS_META[idx]?.question ?? `Question ${idx}`,
+            answer,
+            stage: QUESTIONS_META[idx]?.stage ?? 1,
+          };
+        });
+
       setGeneratePhase("Sending to Claude for brand voice analysis…");
       const res = await generateVoiceConfigForBrand({
         brand_name: brandName,
         industry: brandIndustry,
-        interview_answers: [],
-        sample_posts: [combinedText],
+        interview_answers: builtAnswers,
+        sample_posts: combinedText ? [combinedText] : [],
       });
 
       setGeneratePhase("Processing results…");
@@ -165,7 +193,8 @@ export default function BrandVoiceWizard({ brandId, brandName, brandIndustry, on
     } finally {
       setGenerating(false);
     }
-  }, [editedSources, brandName, brandIndustry]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editedSources, brandName, brandIndustry, interviewAnswers]);
 
   useEffect(() => {
     if (step === "generate" && !voiceConfig && !generating && !generateError) {
@@ -204,12 +233,18 @@ export default function BrandVoiceWizard({ brandId, brandName, brandIndustry, on
   // ── Step indicators ───────────────────────────────────────────────────
 
   const STEPS: { key: WizardStep; label: string }[] = [
+    { key: "interview", label: "Interview" },
     { key: "source", label: "Sources" },
     { key: "review", label: "Review" },
     { key: "generate", label: "Generate" },
     { key: "config", label: "Config" },
   ];
   const stepIndex = STEPS.findIndex((s) => s.key === step);
+
+  const interviewCanProceed =
+    !!interviewAnswers[0]?.trim() &&
+    !!interviewAnswers[1]?.trim() &&
+    !!interviewAnswers[2]?.trim();
 
   return (
     <div
@@ -252,6 +287,14 @@ export default function BrandVoiceWizard({ brandId, brandName, brandIndustry, on
 
         {/* Body */}
         <div className="overflow-y-auto flex-1 px-6 py-5">
+          {step === "interview" && (
+            <StepInterview
+              answers={interviewAnswers}
+              setAnswers={setInterviewAnswers}
+              showStage2={showStage2}
+              setShowStage2={setShowStage2}
+            />
+          )}
           {step === "source" && (
             <Step1Sources
               urlInput={urlInput}
@@ -296,12 +339,21 @@ export default function BrandVoiceWizard({ brandId, brandName, brandIndustry, on
             {step === "config" && saveError}
           </div>
           <div className="flex gap-2">
-            {step !== "source" && step !== "generate" && (
+            {step !== "interview" && step !== "source" && step !== "generate" && (
               <button
                 onClick={() => setStep(STEPS[stepIndex - 1].key)}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-border bg-surface text-text-secondary hover:bg-elevated text-sm font-medium transition-colors"
               >
                 <ChevronLeft className="w-4 h-4" /> Back
+              </button>
+            )}
+            {step === "interview" && (
+              <button
+                onClick={() => setStep("source")}
+                disabled={!interviewCanProceed}
+                className="flex items-center gap-2 px-5 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
+              >
+                Next: Add Sources <ChevronRight className="w-4 h-4" />
               </button>
             )}
             {step === "source" && (
@@ -360,6 +412,218 @@ export default function BrandVoiceWizard({ brandId, brandName, brandIndustry, on
             )}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Interview Step ────────────────────────────────────────────────────────
+
+interface StepInterviewProps {
+  answers: Record<number, string>;
+  setAnswers: (a: Record<number, string>) => void;
+  showStage2: boolean;
+  setShowStage2: (v: boolean) => void;
+}
+
+function ChipSelect({
+  chips,
+  value,
+  onChange,
+  maxSelect,
+}: {
+  chips: string[];
+  value: string;
+  onChange: (v: string) => void;
+  maxSelect?: number;
+}) {
+  const selected = value ? value.split(", ").filter(Boolean) : [];
+
+  function toggle(chip: string) {
+    if (!maxSelect || maxSelect === 1) {
+      onChange(chip === value ? "" : chip);
+      return;
+    }
+    const next = selected.includes(chip)
+      ? selected.filter((s) => s !== chip)
+      : maxSelect && selected.length >= maxSelect
+      ? selected
+      : [...selected, chip];
+    onChange(next.join(", "));
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {chips.map((chip) => {
+        const active = selected.includes(chip);
+        const disabled = !active && !!maxSelect && selected.length >= maxSelect;
+        return (
+          <button
+            key={chip}
+            type="button"
+            onClick={() => !disabled && toggle(chip)}
+            className={[
+              "px-3 py-1.5 rounded-full border text-xs font-medium transition-colors",
+              active
+                ? "bg-primary-muted border-primary text-text-active"
+                : disabled
+                ? "border-border bg-surface text-text-muted opacity-40 cursor-not-allowed"
+                : "border-border bg-surface text-text-muted hover:border-primary/40 hover:text-text-primary cursor-pointer",
+            ].join(" ")}
+          >
+            {chip}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+const STAGE1_QUESTIONS = [
+  {
+    index: 0,
+    question: "What does your brand do, and who is it for?",
+    hint: "1–2 sentences. This is the most important question.",
+    placeholder: "e.g. We help SaaS founders reduce churn through better onboarding",
+    inputType: "text" as const,
+  },
+  {
+    index: 1,
+    question: "Who are you writing for?",
+    hint: "Pick the closest match.",
+    inputType: "single_chip" as const,
+    chips: ["Startup Founders", "SME Business Owners", "Corporate Executives", "Marketing Professionals", "Tech Teams", "General Consumers"],
+  },
+  {
+    index: 2,
+    question: "Pick up to 3 words that describe how your brand should sound.",
+    hint: "Choose 3. These become your brand's voice fingerprint.",
+    inputType: "multi_chip" as const,
+    maxSelect: 3,
+    chips: ["Bold", "Warm", "Authoritative", "Conversational", "Inspiring", "Direct", "Playful", "Expert", "Empathetic", "Premium"],
+  },
+  {
+    index: 3,
+    question: "What should this brand NEVER say or do in content?",
+    hint: "Off-limits topics or tones. Leave blank if none.",
+    placeholder: "e.g. Never mention competitors by name. Avoid aggressive sales language.",
+    inputType: "text" as const,
+  },
+];
+
+const STAGE2_QUESTIONS = [
+  {
+    index: 4,
+    question: "What are the 2–3 biggest problems your brand solves for customers?",
+    hint: "Specific pain points produce the most compelling content.",
+    placeholder: "e.g. Our clients waste 3 hours a day on manual reporting. We fix that.",
+    inputType: "text" as const,
+  },
+  {
+    index: 5,
+    question: "What makes your brand different from competitors?",
+    hint: "1–2 sentences. Sharpens positioning in every post.",
+    placeholder: "e.g. We're the only agency focused exclusively on B2B SaaS in SEA.",
+    inputType: "text" as const,
+  },
+  {
+    index: 6,
+    question: "What kind of content do you want to lead with?",
+    hint: "Pick 1–2. Sets the default angle for all generated posts.",
+    inputType: "multi_chip" as const,
+    maxSelect: 2,
+    chips: ["Thought Leadership", "Client Results / Case Studies", "Educational Tips", "Behind the Scenes", "Industry News & Takes", "Promotional"],
+  },
+  {
+    index: 7,
+    question: "Paste 1–3 examples of content whose style you want to match.",
+    hint: "Optional — real examples beat any description.",
+    placeholder: "Paste real posts or captions from any brand you admire…",
+    inputType: "text" as const,
+  },
+];
+
+type AnyQuestion = typeof STAGE1_QUESTIONS[0] | typeof STAGE2_QUESTIONS[0];
+
+function StepInterview({ answers, setAnswers, showStage2, setShowStage2 }: StepInterviewProps) {
+  function setAnswer(index: number, value: string) {
+    setAnswers({ ...answers, [index]: value });
+  }
+
+  function renderQuestion(q: AnyQuestion, displayNumber: number) {
+    return (
+      <div key={q.index} className="space-y-2">
+        <div>
+          <p className="text-sm font-semibold text-text-primary">
+            {displayNumber}. {q.question}
+          </p>
+          {q.hint && <p className="text-xs text-text-muted mt-0.5">{q.hint}</p>}
+        </div>
+        {q.inputType === "text" ? (
+          <textarea
+            value={answers[q.index] ?? ""}
+            onChange={(e) => setAnswer(q.index, e.target.value)}
+            placeholder={"placeholder" in q ? (q as { placeholder?: string }).placeholder ?? "" : ""}
+            rows={q.index === 7 ? 5 : 3}
+            className="w-full rounded-lg border border-border bg-elevated text-text-primary text-sm px-3 py-2 focus:outline-none focus:border-primary resize-none placeholder:text-text-muted"
+          />
+        ) : (
+          <ChipSelect
+            chips={"chips" in q ? (q as { chips: string[] }).chips : []}
+            value={answers[q.index] ?? ""}
+            onChange={(v) => setAnswer(q.index, v)}
+            maxSelect={"maxSelect" in q ? (q as { maxSelect?: number }).maxSelect : undefined}
+          />
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-sm font-semibold text-text-primary mb-1">Tell us about your brand</h3>
+        <p className="text-xs text-text-muted">
+          Answer 4 quick questions and we&apos;ll build your brand voice. Takes about 60 seconds.
+        </p>
+      </div>
+
+      {/* Stage 1 */}
+      <div className="space-y-5">
+        {STAGE1_QUESTIONS.map((q, i) => renderQuestion(q, i + 1))}
+      </div>
+
+      {/* Stage 2 toggle */}
+      <div className="border-t border-border pt-4">
+        {!showStage2 ? (
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-text-primary">Want sharper results?</p>
+              <p className="text-xs text-text-muted mt-0.5">Answer 4 more questions for more specific, on-brand content.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowStage2(true)}
+              className="px-4 py-2 rounded-lg border border-border bg-elevated text-text-secondary hover:bg-border text-xs font-medium transition-colors"
+            >
+              Yes, go deeper
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-5">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-text-primary">Deeper questions (optional)</p>
+              <button
+                type="button"
+                onClick={() => setShowStage2(false)}
+                className="text-xs text-text-muted hover:text-text-primary transition-colors"
+              >
+                Skip these
+              </button>
+            </div>
+            {STAGE2_QUESTIONS.map((q, i) => renderQuestion(q, i + 5))}
+          </div>
+        )}
       </div>
     </div>
   );
