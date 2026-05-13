@@ -27,6 +27,17 @@ type WizardStep = "interview" | "source" | "review" | "generate" | "config";
 const PLATFORM_ORDER = ["linkedin", "instagram", "tiktok", "facebook", "x", "youtube"];
 const MAX_PASTE_CHARS = 5000;
 
+const QUESTIONS_META = [
+  { question: "What does your brand do, and who is it for?", stage: 1 },
+  { question: "Who are you writing for?", stage: 1 },
+  { question: "Pick up to 3 words that describe how your brand should sound.", stage: 1 },
+  { question: "What should this brand NEVER say or do in content?", stage: 1 },
+  { question: "What are the 2–3 biggest problems your brand solves for customers?", stage: 2 },
+  { question: "What makes your brand different from competitors?", stage: 2 },
+  { question: "What kind of content do you want to lead with?", stage: 2 },
+  { question: "Paste 1–3 examples of content whose style you want to match.", stage: 2 },
+];
+
 // ── Warning badge ─────────────────────────────────────────────────────────
 
 function WarningBadge({ warning }: { warning: SourceResult["warning"] }) {
@@ -136,17 +147,6 @@ export default function BrandVoiceWizard({ brandId, brandName, brandIndustry, on
   const canAnalyse = urls.length > 0 || (showPaste && pastedTexts.some((t) => t.trim().length > 0));
 
   // ── Step 3: generation ────────────────────────────────────────────────
-
-  const QUESTIONS_META = [
-    { question: "What does your brand do, and who is it for?", stage: 1 },
-    { question: "Who are you writing for?", stage: 1 },
-    { question: "Pick up to 3 words that describe how your brand should sound.", stage: 1 },
-    { question: "What should this brand NEVER say or do in content?", stage: 1 },
-    { question: "What are the 2–3 biggest problems your brand solves for customers?", stage: 2 },
-    { question: "What makes your brand different from competitors?", stage: 2 },
-    { question: "What kind of content do you want to lead with?", stage: 2 },
-    { question: "Paste 1–3 examples of content whose style you want to match.", stage: 2 },
-  ];
 
   const runGeneration = useCallback(async () => {
     setGenerating(true);
@@ -440,7 +440,8 @@ function ChipSelect({
   const selected = value ? value.split(", ").filter(Boolean) : [];
 
   function toggle(chip: string) {
-    if (!maxSelect || maxSelect === 1) {
+    if (!maxSelect) {
+      // No limit means single-select (used for single_chip questions)
       onChange(chip === value ? "" : chip);
       return;
     }
