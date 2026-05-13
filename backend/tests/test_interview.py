@@ -62,3 +62,36 @@ def test_multi_chip_questions_have_max_select():
     multi = [q for q in INTERVIEW_QUESTIONS if q["input_type"] == "multi_chip"]
     for q in multi:
         assert "max_select" in q, f"Multi-chip question missing max_select: {q['question']}"
+
+
+from app.services.anthropic_service import _build_voice_config_prompt
+
+
+def test_voice_config_prompt_renders_chip_answers_distinctly():
+    answers = [
+        {"question_index": 0, "question": "What does your brand do?", "answer": "We help founders", "stage": 1},
+        {"question_index": 1, "question": "Who are you writing for?", "answer": "Startup Founders", "stage": 1},
+        {"question_index": 2, "question": "Pick up to 3 words...", "answer": "Bold, Direct, Expert", "stage": 1},
+    ]
+    prompt = _build_voice_config_prompt("Acme", "Tech", answers, [])
+    assert "Startup Founders" in prompt
+    assert "Bold, Direct, Expert" in prompt
+    assert "Acme" in prompt
+
+
+def test_voice_config_prompt_includes_stage2_when_provided():
+    answers = [
+        {"question_index": 0, "question": "What does your brand do?", "answer": "We help founders", "stage": 1},
+        {"question_index": 4, "question": "Biggest problems solved?", "answer": "Clients waste 3 hours on reports", "stage": 2},
+    ]
+    prompt = _build_voice_config_prompt("Acme", "Tech", answers, [])
+    assert "Clients waste 3 hours on reports" in prompt
+
+
+def test_voice_config_prompt_works_without_stage2():
+    answers = [
+        {"question_index": 0, "question": "What does your brand do?", "answer": "We help founders", "stage": 1},
+    ]
+    prompt = _build_voice_config_prompt("Acme", "Tech", answers, [])
+    assert "Acme" in prompt
+    assert "We help founders" in prompt

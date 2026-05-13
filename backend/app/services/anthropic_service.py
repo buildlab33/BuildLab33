@@ -102,31 +102,37 @@ def generate_post(req: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-async def generate_voice_config(
+def _build_voice_config_prompt(
     brand_name: str,
     industry: str,
     interview_answers: list[dict],
     sample_posts: list[str],
-) -> dict:
-    """Use Claude to synthesise interview answers + sample posts into a brand voice config."""
-    from app.config import get_settings
-    import anthropic
-    import json
-    settings = get_settings()
-    client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+) -> str:
+    """Build the user prompt for voice config generation from structured interview answers."""
+    stage1 = [a for a in interview_answers if a.get("stage", 1) == 1]
+    stage2 = [a for a in interview_answers if a.get("stage", 1) == 2]
 
-    qa_block = "\n".join(
-        f"Q{i+1}: {a['question']}\nA: {a['answer']}" for i, a in enumerate(interview_answers)
-    )
+    def fmt_answer(a: dict) -> str:
+        return f"Q: {a['question']}\nA: {a['answer']}"
+
+    stage1_block = "\n\n".join(fmt_answer(a) for a in stage1) if stage1 else "No core answers provided."
+    stage2_block = "\n\n".join(fmt_answer(a) for a in stage2) if stage2 else ""
     samples_block = "\n\n---\n\n".join(sample_posts) if sample_posts else "No sample posts provided."
 
-    prompt = f"""You are a brand strategist. Based on the interview answers and sample posts below, generate a structured brand voice configuration for {brand_name} ({industry}).
+    depth_section = f"\n\n## Additional Brand Depth (Stage 2)\n{stage2_block}" if stage2_block else ""
 
-## Interview Answers
-{qa_block}
+    return f"""You are a brand strategist. Based on the interview answers and sample posts below, generate a structured brand voice configuration for {brand_name} ({industry}).
 
-## Sample Posts
+## Core Brand Interview (Stage 1)
+{stage1_block}{depth_section}
+
+## Sample Posts / Style References
 {samples_block}
+
+Important:
+- Q2 (audience) and Q3 (personality words) are chip selections — treat them as direct, authoritative signals, not approximations.
+- If Stage 2 answers are provided, use them to add specificity and positioning depth to the voice config.
+- If Stage 2 is absent, infer reasonable defaults from Stage 1 answers.
 
 Return ONLY valid JSON with this exact structure:
 {{
@@ -146,6 +152,22 @@ Return ONLY valid JSON with this exact structure:
   "avoid": ["things", "to", "never", "say", "or", "do"],
   "sample_prompts": ["3 example generation prompts tailored to this brand"]
 }}"""
+
+
+async def generate_voice_config(
+    brand_name: str,
+    industry: str,
+    interview_answers: list[dict],
+    sample_posts: list[str],
+) -> dict:
+    """Use Claude to synthesise interview answers + sample posts into a brand voice config."""
+    from app.config import get_settings
+    import anthropic
+    import json
+    settings = get_settings()
+    client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+
+    prompt = _build_voice_config_prompt(brand_name, industry, interview_answers, sample_posts)
 
     message = client.messages.create(
         model=settings.anthropic_model,
