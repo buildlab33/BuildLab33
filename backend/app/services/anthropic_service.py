@@ -3,11 +3,24 @@
 Builds a prompt from the brand config + structured user inputs and asks Claude
 to draft a platform-appropriate post that respects the brand voice and off-limits.
 """
+import re
 from typing import Any
 
 from anthropic import Anthropic
 from app.config import get_settings
 from app.services.brand_loader import PLATFORM_RULES, load_brand_config
+
+
+_INJECTION_PATTERNS = re.compile(
+    r"(ignore (all )?(previous|prior) instructions?|you are now|system prompt|"
+    r"disregard|forget everything|new instruction)",
+    re.IGNORECASE,
+)
+
+
+def _sanitise_trend(text: str, max_len: int) -> str:
+    text = _INJECTION_PATTERNS.sub("[removed]", text)
+    return text[:max_len]
 
 
 def _build_system_prompt(brand: dict, platform: str) -> str:
@@ -34,6 +47,8 @@ Output rules:
 4. Do not use generic AI-sounding phrases ("In today's fast-paced world", "Let's dive in", etc.).
 5. Match the brand voice precisely. If the brand is strategic and infrastructure-led, be that. If it is cinematic and emotionally driven, be that.
 6. The post must feel written by a person who knows this brand deeply.
+7. Write like a real person who follows this industry closely. Use specific, concrete language. Avoid category-level generalities ("businesses today", "in the modern landscape"). Ground every claim in something tangible.
+8. Vary sentence length deliberately. Mix short punchy sentences with longer ones. Never write three sentences of the same length in a row.
 """.strip()
 
 
@@ -45,11 +60,22 @@ def _build_user_prompt(req: dict, pillars_text: str, sample_posts: list[str]) ->
     if sample_posts:
         formatted = "\n\n---\n\n".join(sample_posts[:5])
         samples_section = f"\nHere are real posts published for this brand — study the style, sentence structure, vocabulary, and tone, then match it exactly:\n\n{formatted}\n"
+
+    trend_section = ""
+    tc = req.get("trend_context")
+    if tc:
+        title = _sanitise_trend(tc.get("title", "") if isinstance(tc, dict) else tc.title, 200)
+        summary = _sanitise_trend(tc.get("summary", "") if isinstance(tc, dict) else tc.summary, 500)
+        trend_section = (
+            f"\nCurrent market context — use this as a real-world hook or angle, not the entire post topic. "
+            f"Open by reacting to it or building on it:\n\"{title}\" — {summary}\n"
+        )
+
     return f"""Write a {req['platform']} post for the following brief.
 
 {format_line}Campaign goal: {req['campaign_goal']}
 Target audience: {req['audience']}
-{angle_line}{pillars_section}{samples_section}
+{angle_line}{pillars_section}{trend_section}{samples_section}
 Write the post now.""".strip()
 
 
