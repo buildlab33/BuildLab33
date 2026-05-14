@@ -23,9 +23,9 @@ function sessionKey(brandId: string) {
 }
 
 function fitScoreClass(score: number): string {
-  if (score >= 8) return "bg-green-100 text-green-700";
-  if (score >= 5) return "bg-yellow-100 text-yellow-700";
-  return "bg-red-100 text-red-700";
+  if (score >= 8) return "bg-success/10 text-success";
+  if (score >= 5) return "bg-warning/10 text-warning";
+  return "bg-error/10 text-error";
 }
 
 function platformBadgeClass(platform: string): string {
@@ -50,13 +50,21 @@ function isDuplicate(lead: LeadSuggestion, contacts: ContactItem[]): ContactItem
   return null;
 }
 
+interface ApiError {
+  response?: { status?: number };
+}
+
 function handleApiError(err: unknown) {
-  const status = (err as { response?: { status?: number } })?.response?.status;
+  const status = (err as ApiError)?.response?.status;
   if (status === 403) toast.error("You don't have access to this brand");
   else if (status === 404) toast.error("Brand not found");
   else if (status === 429) toast.error("Too many requests — wait a minute and try again");
   else if (status === 503) toast.error("AI service unavailable — try again in a moment");
   else toast.error("Failed to fetch suggestions — try again");
+}
+
+function getApiStatus(err: unknown): number | undefined {
+  return (err as ApiError)?.response?.status;
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -109,7 +117,7 @@ function LeadCard({ card, onOpenerChange, onApprove, onDismiss }: LeadCardProps)
     <div className="bg-surface border border-border rounded-xl p-5 flex flex-col gap-3">
       {/* Dedup warning */}
       {dupContact && (
-        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg px-3 py-2 text-xs">
+        <div className="bg-warning/10 border border-warning/30 text-warning rounded-lg px-3 py-2 text-xs">
           Already in CRM as <span className="font-semibold">{dupContact.status}</span>
           {dupContact.name !== lead.name ? ` (matched by handle)` : ""}
         </div>
@@ -278,9 +286,14 @@ export default function LeadDiscoverPage() {
   };
 
   const handleOpenerChange = (index: number, value: string) => {
-    setCards((prev) =>
-      prev.map((c, i) => (i === index ? { ...c, opener: value } : c))
-    );
+    setCards((prev) => {
+      const updated = prev.map((c, i) => (i === index ? { ...c, opener: value } : c));
+      if (selectedBrandId) {
+        const leads = updated.map((c) => ({ ...c.lead, outreach_opener: c.opener }));
+        sessionStorage.setItem(sessionKey(selectedBrandId), JSON.stringify(leads));
+      }
+      return updated;
+    });
   };
 
   const removeFromSession = (brandId: string, leadName: string) => {
@@ -323,22 +336,21 @@ export default function LeadDiscoverPage() {
         notes: buildNotes(lead, opener),
       });
 
-      setCards((prev) =>
-        prev.map((c, i) => (i === index ? { ...c, status: "approved" } : c))
-      );
       removeFromSession(selectedBrandId, lead.name);
       setApprovedCount((n) => n + 1);
 
-      // Check if all cards actioned
-      const updatedCards = cards.map((c, i) =>
-        i === index ? { ...c, status: "approved" as const } : c
-      );
-      const allDone = updatedCards.every(
-        (c) => c.status === "approved" || c.status === "dismissed"
-      );
-      if (allDone) setPageState("completion");
+      setCards((prev) => {
+        const updatedCards = prev.map((c, i) =>
+          i === index ? { ...c, status: "approved" as const } : c
+        );
+        const allDone = updatedCards.every(
+          (c) => c.status === "approved" || c.status === "dismissed"
+        );
+        if (allDone) setPageState("completion");
+        return updatedCards;
+      });
     } catch (err) {
-      const status = (err as { response?: { status?: number } })?.response?.status;
+      const status = getApiStatus(err);
       if (status === 403) toast.error("You don't have access to this brand");
       else toast.error(`Failed to import ${lead.name} — try again`);
       setCards((prev) =>
@@ -351,20 +363,19 @@ export default function LeadDiscoverPage() {
     const card = cards[index];
     if (!card || card.status !== "idle") return;
 
-    setCards((prev) =>
-      prev.map((c, i) => (i === index ? { ...c, status: "dismissed" } : c))
-    );
     removeFromSession(selectedBrandId, card.lead.name);
     setDismissedCount((n) => n + 1);
 
-    // Check if all actioned
-    const updatedCards = cards.map((c, i) =>
-      i === index ? { ...c, status: "dismissed" as const } : c
-    );
-    const allDone = updatedCards.every(
-      (c) => c.status === "approved" || c.status === "dismissed"
-    );
-    if (allDone) setPageState("completion");
+    setCards((prev) => {
+      const updatedCards = prev.map((c, i) =>
+        i === index ? { ...c, status: "dismissed" as const } : c
+      );
+      const allDone = updatedCards.every(
+        (c) => c.status === "approved" || c.status === "dismissed"
+      );
+      if (allDone) setPageState("completion");
+      return updatedCards;
+    });
   };
 
   const handleFindMore = () => {
@@ -497,7 +508,7 @@ export default function LeadDiscoverPage() {
           </div>
 
           {/* Disclaimer */}
-          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg px-4 py-3 text-sm">
+          <div className="bg-warning/10 border border-warning/30 text-warning rounded-lg px-4 py-3 text-sm">
             These are AI-generated archetypes — verify details before reaching out.
           </div>
 
@@ -508,7 +519,7 @@ export default function LeadDiscoverPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {cards.map((card, index) => (
                 <LeadCard
-                  key={`${card.lead.name}-${index}`}
+                  key={card.lead.handle || card.lead.name}
                   card={card}
                   onOpenerChange={(val) => handleOpenerChange(index, val)}
                   onApprove={() => handleApprove(index)}
