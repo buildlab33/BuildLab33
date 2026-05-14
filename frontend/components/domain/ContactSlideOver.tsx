@@ -5,6 +5,7 @@ import {
   createContact, deleteActivity, getContact, logActivity, updateContact,
 } from "@/lib/contacts-api";
 import { getBrands } from "@/lib/api";
+import { toast } from "sonner";
 
 interface Brand { id: string; name: string }
 
@@ -58,7 +59,7 @@ export default function ContactSlideOver({ contactId, mode, initialStatus, onClo
   const [actSaving, setActSaving] = useState(false);
 
   useEffect(() => {
-    getBrands().then(r => setBrands(r.data?.brands || [])).catch(() => {});
+    getBrands().then(r => setBrands(r.data?.brands || [])).catch(() => toast.error("Failed to load brands"));
     if (mode === "view" && contactId) {
       getContact(contactId).then(r => {
         const c = r.data;
@@ -71,6 +72,9 @@ export default function ContactSlideOver({ contactId, mode, initialStatus, onClo
         setBrandId(c.brand_id ?? "");
         setStatus(c.status);
         setNotes(c.notes ?? "");
+      }).catch(() => {
+        toast.error("Failed to load contact");
+        onClose();
       });
     }
   }, [contactId, mode]);
@@ -94,6 +98,8 @@ export default function ContactSlideOver({ contactId, mode, initialStatus, onClo
         const r = await updateContact(contactId, payload);
         onUpdated(r.data);
       }
+    } catch {
+      toast.error("Failed to save contact");
     } finally {
       setSaving(false);
     }
@@ -108,6 +114,8 @@ export default function ContactSlideOver({ contactId, mode, initialStatus, onClo
       setContact(r.data);
       setActNotes("");
       setActDate(today);
+    } catch {
+      toast.error("Failed to log activity");
     } finally {
       setActSaving(false);
     }
@@ -115,9 +123,14 @@ export default function ContactSlideOver({ contactId, mode, initialStatus, onClo
 
   async function handleDeleteActivity(activityId: string) {
     if (!contactId) return;
-    await deleteActivity(contactId, activityId);
-    const r = await getContact(contactId);
-    setContact(r.data);
+    if (!confirm("Delete this activity? This cannot be undone.")) return;
+    try {
+      await deleteActivity(contactId, activityId);
+      const r = await getContact(contactId);
+      setContact(r.data);
+    } catch {
+      toast.error("Failed to delete activity");
+    }
   }
 
   return (
@@ -136,7 +149,7 @@ export default function ContactSlideOver({ contactId, mode, initialStatus, onClo
             {mode === "view" && (
               <span className={`text-xs px-2.5 py-1 rounded-full font-medium capitalize ${STATUS_STYLE[status]}`}>{status}</span>
             )}
-            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-elevated hover:bg-border text-text-muted hover:text-text transition-colors text-lg">
+            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-elevated hover:bg-border text-text-muted hover:text-text transition-colors text-lg cursor-pointer">
               &times;
             </button>
           </div>
@@ -212,7 +225,7 @@ export default function ContactSlideOver({ contactId, mode, initialStatus, onClo
                           <p className="text-xs text-text-muted mb-0.5">{a.activity_date}</p>
                           <p className="text-sm text-text break-words">{a.notes}</p>
                         </div>
-                        <button onClick={() => handleDeleteActivity(a.id)} className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-error/10 text-text-muted hover:text-error transition-colors text-sm flex-shrink-0">&times;</button>
+                        <button onClick={() => handleDeleteActivity(a.id)} className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-error/10 text-text-muted hover:text-error transition-colors text-sm flex-shrink-0 cursor-pointer">&times;</button>
                       </div>
                     ))}
                   </div>
@@ -248,11 +261,11 @@ export default function ContactSlideOver({ contactId, mode, initialStatus, onClo
         {/* Footer */}
         <div className="px-6 py-4 border-t border-border bg-elevated flex-shrink-0 flex gap-2">
           {mode === "view" && contact && (
-            <button onClick={handleLogActivity} disabled={actSaving || !actNotes.trim()} className="flex-1 bg-elevated border border-border text-text rounded-lg py-2 text-sm font-medium hover:bg-border disabled:opacity-50 transition-colors">
+            <button onClick={handleLogActivity} disabled={actSaving || !actNotes.trim()} className="flex-1 bg-elevated border border-border text-text rounded-lg py-2 text-sm font-medium hover:bg-border disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors">
               {actSaving ? "Logging..." : "Log Activity"}
             </button>
           )}
-          <button onClick={handleSave} disabled={saving || !name.trim()} className="flex-1 bg-primary text-white rounded-lg py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors">
+          <button onClick={handleSave} disabled={saving || !name.trim()} className="flex-1 bg-primary text-white rounded-lg py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors">
             {saving ? "Saving..." : mode === "create" ? "Create Contact" : "Save changes"}
           </button>
         </div>
