@@ -52,7 +52,7 @@ function GenerateForm() {
       const brandsData = res.data?.brands || res.data || [];
       setBrands(brandsData);
       if (!brandId && brandsData.length > 0) setBrandId(brandsData[0].id);
-    });
+    }).catch(() => toast.error("Failed to load brands"));
   }, []);
 
   function collectParams() {
@@ -253,9 +253,11 @@ function GenerateForm() {
                 <Badge>{result.platform}</Badge>
                 <CharacterCounter current={resultCharCount} max={platformLimit} className="ml-auto" />
               </div>
-              <div className="bg-elevated rounded-lg p-4 text-sm leading-relaxed whitespace-pre-wrap min-h-[200px] text-text-primary">
-                {result.text}
-              </div>
+              <textarea
+                className="bg-elevated rounded-lg p-4 text-sm leading-relaxed whitespace-pre-wrap min-h-[200px] text-text-primary w-full resize-none border-0 outline-none focus:ring-1 focus:ring-primary"
+                value={result.text}
+                onChange={(e) => setResult((prev) => prev ? { ...prev, text: e.target.value } : null)}
+              />
               <div className="mt-4 flex gap-2 flex-wrap">
                 <Button className="text-xs" onClick={() => handleSave(true)} disabled={saving}>
                   {saving ? "Saving..." : "Submit for Approval"}

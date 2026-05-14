@@ -124,7 +124,7 @@ export default function CalendarPage() {
     getBrands().then((res) => {
       const data: BrandPublic[] = res.data?.brands || res.data || [];
       setBrands(data);
-    }).catch(() => {});
+    }).catch(() => toast.error("Failed to load brands"));
   }, []);
 
   // Load scheduled posts when brand changes
@@ -272,6 +272,7 @@ export default function CalendarPage() {
 
   const handleUnschedule = async () => {
     if (!reschedulePost_) return;
+    if (!confirm("Unschedule this post?")) return;
     setRescheduling(true);
     try {
       await unschedulePost(reschedulePost_.id);
@@ -403,7 +404,7 @@ export default function CalendarPage() {
                 return (
                   <div
                     key={`${hour}-${colIdx}`}
-                    className="border border-border rounded min-h-[40px] p-0.5 cursor-pointer hover:border-elevated transition-colors"
+                    className="border border-border rounded min-h-[40px] p-0.5 cursor-pointer hover:border-elevated hover:bg-primary/5 transition-colors"
                     onClick={(e) => { e.stopPropagation(); openSchedulePanel(ds); }}
                   >
                     <div onClick={(e) => e.stopPropagation()}>

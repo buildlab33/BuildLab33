@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import ContactSlideOver from "@/components/domain/ContactSlideOver";
 import { ActivityChannel, ActivityItem, ContactItem, getContacts, logActivity } from "@/lib/contacts-api";
 import { getBrands } from "@/lib/api";
+import { toast } from "sonner";
 
 interface Brand { id: string; name: string }
 interface FlatActivity extends ActivityItem {
@@ -35,12 +36,16 @@ export default function OutreachPage() {
   async function load() {
     const params: Record<string, string | boolean> = { include_activities: true };
     if (filterBrand) params.brand_id = filterBrand;
-    const r = await getContacts(params as Parameters<typeof getContacts>[0]);
-    setContacts(r.data ?? []);
+    try {
+      const r = await getContacts(params as Parameters<typeof getContacts>[0]);
+      setContacts(r.data ?? []);
+    } catch {
+      toast.error("Failed to load contacts");
+    }
   }
 
   useEffect(() => { load(); }, [filterBrand]);
-  useEffect(() => { getBrands().then(r => setBrands(r.data?.brands || [])).catch(() => {}); }, []);
+  useEffect(() => { getBrands().then(r => setBrands(r.data?.brands || [])).catch(() => toast.error("Failed to load brands")); }, []);
 
   const activities: FlatActivity[] = contacts
     .flatMap(c => (c.activities ?? []).map(a => ({ ...a, contact: c })))
@@ -62,6 +67,8 @@ export default function OutreachPage() {
       await logActivity(logContactId, { channel: logChannel, notes: logNotes, activity_date: logDate });
       await load();
       setLogModal(false);
+    } catch {
+      toast.error("Failed to log activity");
     } finally {
       setLogSaving(false);
     }

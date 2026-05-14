@@ -4,6 +4,7 @@ import Link from "next/link";
 import ContactSlideOver from "@/components/domain/ContactSlideOver";
 import { ContactItem, ContactStatus, getContacts } from "@/lib/contacts-api";
 import { getBrands } from "@/lib/api";
+import { toast } from "sonner";
 
 interface Brand { id: string; name: string }
 
@@ -35,7 +36,7 @@ export default function LeadsPage() {
   }
 
   useEffect(() => { load(); }, [filterStatus, filterBrand]);
-  useEffect(() => { getBrands().then(r => setBrands(r.data?.brands || [])).catch(() => {}); }, []);
+  useEffect(() => { getBrands().then(r => setBrands(r.data?.brands || [])).catch(() => toast.error("Failed to load brands")); }, []);
 
   function brandName(id: string | null) {
     if (!id) return "—";

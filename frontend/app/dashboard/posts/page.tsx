@@ -48,7 +48,7 @@ export default function PostsPage() {
     getBrands().then((res) => {
       const data = res.data?.brands || res.data || [];
       setBrands(data);
-    }).catch(() => {});
+    }).catch(() => toast.error("Failed to load brands"));
   }, []);
 
   const handleSubmit = async (e: React.MouseEvent, post: PostItem) => {
