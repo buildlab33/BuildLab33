@@ -147,6 +147,9 @@ export default function OutreachPage() {
                     <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-muted text-xs">&#9660;</span>
                   </div>
                 </div>
+                {!logContactId && (
+                  <p className="text-xs text-text-muted -mt-1">Select a contact to continue</p>
+                )}
                 <button onClick={() => logContactId && setLogStep(2)} disabled={!logContactId} className="w-full bg-primary text-white rounded-lg py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors">
                   Next
                 </button>

@@ -24,6 +24,24 @@ export default function ProfilePage() {
   const [showNew, setShowNew] = useState(false);
   const [savingPw, setSavingPw] = useState(false);
 
+  function pwStrength(pw: string): { score: number; label: string; color: string } {
+    let score = 0;
+    if (pw.length >= 8) score++;
+    if (/[A-Z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw)) score++;
+    if (/[^A-Za-z0-9]/.test(pw)) score++;
+    const levels = [
+      { score: 0, label: "", color: "" },
+      { score: 1, label: "Weak", color: "bg-error" },
+      { score: 2, label: "Fair", color: "bg-warning" },
+      { score: 3, label: "Good", color: "bg-info" },
+      { score: 4, label: "Strong", color: "bg-success" },
+    ];
+    return levels[score];
+  }
+
+  const strength = pwStrength(newPw);
+
   const handleSaveProfile = async () => {
     setSavingProfile(true);
     try {
@@ -102,6 +120,19 @@ export default function ProfilePage() {
                 {showNew ? <EyeOff size={15} /> : <Eye size={15} />}
               </button>
             </div>
+            {newPw && (
+              <div className="mt-2 flex items-center gap-2">
+                <div className="flex gap-1 flex-1">
+                  {[1, 2, 3, 4].map((n) => (
+                    <div
+                      key={n}
+                      className={`h-1 flex-1 rounded-full transition-colors ${strength.score >= n ? strength.color : "bg-border"}`}
+                    />
+                  ))}
+                </div>
+                <span className="text-xs text-text-muted w-12 text-right">{strength.label}</span>
+              </div>
+            )}
             <p className="text-xs text-text-muted mt-1">Min 8 chars, 1 uppercase, 1 number, 1 special character.</p>
           </div>
           <div>

@@ -4,8 +4,19 @@ import { ChevronRight } from "lucide-react";
 import { getBrands } from "@/lib/api";
 import { NewsArticle, getNews } from "@/lib/news-api";
 import NewsSlideOver from "@/components/domain/NewsSlideOver";
+import { toast } from "sonner";
 
 interface Brand { id: string; name: string }
+
+function readKey(brand: string) { return `news_read_${brand}`; }
+function getRead(brand: string): Set<string> {
+  try { return new Set(JSON.parse(sessionStorage.getItem(readKey(brand)) ?? "[]")); } catch { return new Set(); }
+}
+function markRead(brand: string, url: string) {
+  const set = getRead(brand);
+  set.add(url);
+  sessionStorage.setItem(readKey(brand), JSON.stringify([...set]));
+}
 
 export default function NewsFeedPage() {
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -13,14 +24,16 @@ export default function NewsFeedPage() {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(false);
   const [slideOver, setSlideOver] = useState<NewsArticle | null>(null);
+  const [readUrls, setReadUrls] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    getBrands().then(r => setBrands(r.data?.brands || [])).catch(() => {});
+    getBrands().then(r => setBrands(r.data?.brands || [])).catch(() => toast.error("Failed to load brands"));
   }, []);
 
   useEffect(() => {
-    if (!selectedBrand) { setArticles([]); return; }
+    if (!selectedBrand) { setArticles([]); setReadUrls(new Set()); return; }
     setLoading(true);
+    setReadUrls(getRead(selectedBrand));
     getNews(selectedBrand)
       .then(r => setArticles(r.data ?? []))
       .catch(() => setArticles([]))
@@ -71,24 +84,35 @@ export default function NewsFeedPage() {
           </div>
         ) : (
           <div className="divide-y divide-border">
-            {articles.map((article, i) => (
-              <button
-                key={i}
-                onClick={() => setSlideOver(article)}
-                className="w-full text-left px-4 py-4 flex items-center gap-3 hover:bg-background transition-colors"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-text truncate">{article.title}</p>
-                  <p className="text-xs text-text-muted mt-0.5">
-                    {article.source}
-                    {article.published_at
-                      ? ` · ${new Date(article.published_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
-                      : ""}
-                  </p>
-                </div>
-                <ChevronRight size={16} className="text-text-muted flex-shrink-0" />
-              </button>
-            ))}
+            {articles.map((article, i) => {
+              const isRead = readUrls.has(article.url ?? String(i));
+              return (
+                <button
+                  key={i}
+                  onClick={() => {
+                    const key = article.url ?? String(i);
+                    markRead(selectedBrand, key);
+                    setReadUrls(prev => new Set([...prev, key]));
+                    setSlideOver(article);
+                  }}
+                  className={`w-full text-left px-4 py-4 flex items-center gap-3 hover:bg-background transition-colors ${isRead ? "opacity-60" : ""}`}
+                >
+                  {!isRead && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
+                  )}
+                  <div className={`flex-1 min-w-0 ${isRead ? "" : ""}`}>
+                    <p className={`text-sm truncate ${isRead ? "text-text-muted font-normal" : "font-medium text-text"}`}>{article.title}</p>
+                    <p className="text-xs text-text-muted mt-0.5">
+                      {article.source}
+                      {article.published_at
+                        ? ` · ${new Date(article.published_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
+                        : ""}
+                    </p>
+                  </div>
+                  <ChevronRight size={16} className="text-text-muted flex-shrink-0" />
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
