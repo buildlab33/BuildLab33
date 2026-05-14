@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-  getPost, updatePost, submitPost, approvePost, rejectPost,
+  getPost, updatePost, submitPost, unsubmitPost, approvePost, rejectPost,
   schedulePost, unschedulePost, getPostVersions, rollbackPost,
   PostItem, getBrands, BrandPublic,
 } from "@/lib/api";
@@ -118,6 +118,20 @@ export default function PostDetailPage() {
       toast.success("Post submitted for approval");
     } catch {
       toast.error("Failed to submit post");
+    } finally {
+      setActioning(false);
+    }
+  };
+
+  const handleUnsubmit = async () => {
+    if (!post) return;
+    setActioning(true);
+    try {
+      const res = await unsubmitPost(post.id);
+      setPost(res.data);
+      toast.success("Post moved back to draft");
+    } catch {
+      toast.error("Failed to unsubmit post");
     } finally {
       setActioning(false);
     }
@@ -280,6 +294,21 @@ export default function PostDetailPage() {
           </div>
         )}
       </Card>
+
+      {/* Un-submit action — user can retract a pending post before admin reviews */}
+      {post.status === "pending" && post.created_by === user?.sub && (
+        <Card className="mb-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-text-primary mb-1">Waiting for review</p>
+              <p className="text-xs text-text-muted">You can retract this post if you need to make changes.</p>
+            </div>
+            <Button variant="ghost" className="text-xs text-text-muted border border-border" onClick={handleUnsubmit} disabled={actioning}>
+              {actioning ? "Processing..." : "Un-submit"}
+            </Button>
+          </div>
+        </Card>
+      )}
 
       {/* Submit action for draft/rejected owners */}
       {(post.status === "draft" || post.status === "rejected") && (
