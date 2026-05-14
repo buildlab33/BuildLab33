@@ -2,7 +2,11 @@
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
 
 from app.database import get_supabase
 from app.schemas.auth import (
@@ -49,7 +53,8 @@ async def check_username(username: str = Query(min_length=3, max_length=30)):
 # ── Login (step 1) ───────────────────────────────────────────────────────────
 
 @router.post("/login")
-async def login(body: LoginRequest):
+@limiter.limit("10/minute")
+async def login(request: Request, body: LoginRequest):
     """Authenticate with username + password. Returns TokenPair, or 2FA pending if enabled."""
     sb = get_supabase()
     res = sb.table("users").select("*").eq("username", body.username.lower()).limit(1).execute()
@@ -95,7 +100,8 @@ async def login(body: LoginRequest):
 # ── Login step 2 (2FA code) ──────────────────────────────────────────────────
 
 @router.post("/login/2fa", response_model=TokenPair)
-async def login_2fa(body: TwoFALoginRequest):
+@limiter.limit("10/minute")
+async def login_2fa(request: Request, body: TwoFALoginRequest):
     """Complete login by verifying TOTP code after password step."""
     from app.config import get_settings
     import jwt as pyjwt
@@ -237,7 +243,8 @@ async def logout_all(user: Annotated[dict, Depends(current_user)]):
 # ── Signup (direct account creation) ─────────────────────────────────────────
 
 @router.post("/signup", response_model=TokenPair, status_code=status.HTTP_201_CREATED)
-async def signup(body: SignupRequest):
+@limiter.limit("5/minute")
+async def signup(request: Request, body: SignupRequest):
     try:
         validate_password(body.password)
     except PasswordError as e:
@@ -269,7 +276,8 @@ async def signup(body: SignupRequest):
 # ── Forgot password ──────────────────────────────────────────────────────────
 
 @router.post("/forgot-password")
-async def forgot_password(body: ForgotPasswordRequest):
+@limiter.limit("5/minute")
+async def forgot_password(request: Request, body: ForgotPasswordRequest):
     """Send password reset link to email. Always returns 200 (no user enumeration)."""
     sb = get_supabase()
     res = sb.table("users").select("id, email, name").eq("email", body.email).limit(1).execute()
@@ -290,7 +298,8 @@ async def forgot_password(body: ForgotPasswordRequest):
         "expires_at": expires_at,
     }).execute()
 
-    reset_url = f"http://localhost:3000/reset-password?token={token}"
+    from app.config import get_settings as _get_settings
+    reset_url = f"{_get_settings().frontend_url}/reset-password?token={token}"
     await send_email(
         to=user["email"],
         subject="Reset your COP Platform password",

@@ -42,10 +42,19 @@ class Settings(BaseSettings):
     # Resend
     resend_api_key: str = ""
     resend_from_email: str = "no-reply@cop-platform.dev"
+    frontend_url: str = "http://localhost:3000"
 
     # Feature flags
     social_publish_enabled: bool = False
     email_send_enabled: bool = False
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        if self.app_env == "production" and self.jwt_secret == "change-me-in-production":
+            raise RuntimeError(
+                "JWT_SECRET must be set to a strong random value in production. "
+                "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+            )
 
     @property
     def cors_origin_list(self) -> list[str]:
