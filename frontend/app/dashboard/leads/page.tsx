@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import ContactSlideOver from "@/components/domain/ContactSlideOver";
 import { ContactItem, ContactStatus, getContacts } from "@/lib/contacts-api";
 import { getBrands } from "@/lib/api";
@@ -56,6 +57,9 @@ export default function LeadsPage() {
             </select>
             <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-muted text-xs">&#9660;</span>
           </div>
+          <Link href="/dashboard/leads/discover" className="bg-surface border border-border text-text-muted px-4 py-2 rounded-lg text-sm font-medium hover:border-primary hover:text-text transition-colors">
+            Find Leads
+          </Link>
           <button onClick={() => setSlideOver({ contactId: null, mode: "create" })} className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
             Add Contact
           </button>
