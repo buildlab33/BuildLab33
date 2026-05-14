@@ -75,7 +75,7 @@ function GenerateForm() {
     setLoading(true);
     try {
       const res = await generatePost(params);
-      setResult(res.data);
+      setResult({ ...res.data, brand_id: params.brand_id });
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
       setError(msg || "Generation failed. Please try again.");
