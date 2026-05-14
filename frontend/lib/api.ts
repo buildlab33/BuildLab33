@@ -309,3 +309,38 @@ export const reschedulePost = (id: string, scheduled_at: string) =>
 
 export const forceSchedulePost = (id: string, scheduled_at: string) =>
   api.post<PostItem>(`/api/posts/${id}/force-schedule`, { scheduled_at });
+
+// ── Trends ────────────────────────────────────────────────────────────────
+
+export interface TrendHeadline {
+  title: string;
+  url: string;
+  source: string;
+  published_at: string;
+  summary: string;
+  label: "picked_for_you" | "trending";
+}
+
+export interface TrendHeadlinesResponse {
+  headlines: TrendHeadline[];
+  source_status: "ok" | "degraded" | "unavailable";
+}
+
+export function getTrendHeadlines(params: {
+  brand_id: string;
+  goal: string;
+  audience: string;
+  platform: string;
+}): Promise<{ data: TrendHeadlinesResponse }> {
+  const q = new URLSearchParams(params).toString();
+  return api.get(`/trends/headlines?${q}`);
+}
+
+export function logTrendInteraction(body: {
+  brand_id: string;
+  headline_url: string;
+  headline_title: string;
+  action: "clicked" | "saved";
+}): Promise<{ data: { ok: boolean } }> {
+  return api.post("/trends/interaction", body);
+}
