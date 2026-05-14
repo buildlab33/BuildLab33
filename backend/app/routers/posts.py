@@ -115,10 +115,71 @@ async def update_post(post_id: str, body: PostUpdate, user: Annotated[dict, Depe
             raise HTTPException(status_code=403, detail="Access denied")
         if post["status"] not in EDITABLE_STATUSES:
             raise HTTPException(status_code=400, detail=f"Cannot edit a post with status '{post['status']}'")
+    # Snapshot current text before overwriting
+    version_res = sb.table("post_versions").select("version_number").eq("post_id", post_id).order("version_number", desc=True).limit(1).execute()
+    next_version = (version_res.data[0]["version_number"] + 1) if version_res.data else 1
+    try:
+        sb.table("post_versions").insert({
+            "post_id": post_id,
+            "version_number": next_version,
+            "text": post["text"],
+            "created_by": user["sub"],
+        }).execute()
+    except Exception as exc:
+        logger.warning("Version snapshot failed for post %s: %s", post_id, exc)
     now = datetime.now(timezone.utc).isoformat()
     updated = sb.table("posts").update({"text": body.text, "updated_at": now}).eq("id", post_id).execute()
     if not updated.data:
         raise HTTPException(status_code=500, detail="Update failed or row no longer accessible")
+    return updated.data[0]
+
+
+@router.get("/{post_id}/versions")
+async def list_versions(post_id: str, user: Annotated[dict, Depends(current_user)]):
+    """List all saved versions for a post, newest first."""
+    sb = get_supabase()
+    res = sb.table("posts").select("id, created_by").eq("id", post_id).limit(1).execute()
+    if not res.data:
+        raise HTTPException(status_code=404, detail="Post not found")
+    if user.get("role") not in ADMIN_ROLES and res.data[0]["created_by"] != user["sub"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    versions = sb.table("post_versions").select("id, version_number, text, created_by, created_at").eq("post_id", post_id).order("version_number", desc=True).execute()
+    return {"versions": versions.data or []}
+
+
+@router.post("/{post_id}/rollback/{version_number}", response_model=PostOut)
+async def rollback_post(post_id: str, version_number: int, user: Annotated[dict, Depends(current_user)]):
+    """Restore post text to a previous version. Saves current text as a new version first."""
+    sb = get_supabase()
+    res = sb.table("posts").select("*").eq("id", post_id).limit(1).execute()
+    if not res.data:
+        raise HTTPException(status_code=404, detail="Post not found")
+    post = res.data[0]
+    if user.get("role") != "super_admin":
+        if post["created_by"] != user["sub"]:
+            raise HTTPException(status_code=403, detail="Access denied")
+        if post["status"] not in EDITABLE_STATUSES:
+            raise HTTPException(status_code=400, detail=f"Cannot rollback a post with status '{post['status']}'")
+    ver_res = sb.table("post_versions").select("*").eq("post_id", post_id).eq("version_number", version_number).limit(1).execute()
+    if not ver_res.data:
+        raise HTTPException(status_code=404, detail="Version not found")
+    target_text = ver_res.data[0]["text"]
+    # Snapshot current text before rollback
+    latest_res = sb.table("post_versions").select("version_number").eq("post_id", post_id).order("version_number", desc=True).limit(1).execute()
+    next_version = (latest_res.data[0]["version_number"] + 1) if latest_res.data else 1
+    try:
+        sb.table("post_versions").insert({
+            "post_id": post_id,
+            "version_number": next_version,
+            "text": post["text"],
+            "created_by": user["sub"],
+        }).execute()
+    except Exception as exc:
+        logger.warning("Version snapshot failed before rollback for post %s: %s", post_id, exc)
+    now = datetime.now(timezone.utc).isoformat()
+    updated = sb.table("posts").update({"text": target_text, "updated_at": now}).eq("id", post_id).execute()
+    if not updated.data:
+        raise HTTPException(status_code=500, detail="Rollback failed")
     return updated.data[0]
 
 

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   getPost, updatePost, submitPost, approvePost, rejectPost,
-  schedulePost, unschedulePost,
+  schedulePost, unschedulePost, getPostVersions, rollbackPost,
   PostItem, getBrands, BrandPublic,
 } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
@@ -33,8 +33,43 @@ export default function PostDetailPage() {
   const [schedTime, setSchedTime] = useState("09:00");
   const [scheduling, setScheduling] = useState(false);
   const [schedError, setSchedError] = useState("");
+  const [versions, setVersions] = useState<Array<{ id: string; version_number: number; text: string; created_by: string; created_at: string }>>([]);
+  const [showVersions, setShowVersions] = useState(false);
+  const [loadingVersions, setLoadingVersions] = useState(false);
+  const [rollingBack, setRollingBack] = useState<number | null>(null);
 
   const getBrandName = (id: string) => brands.find((b) => b.id === id)?.name ?? id;
+
+  const handleToggleVersions = async () => {
+    if (showVersions) { setShowVersions(false); return; }
+    setLoadingVersions(true);
+    setShowVersions(true);
+    try {
+      const res = await getPostVersions(id);
+      setVersions(res.data.versions);
+    } catch {
+      toast.error("Failed to load version history");
+      setShowVersions(false);
+    } finally {
+      setLoadingVersions(false);
+    }
+  };
+
+  const handleRollback = async (version_number: number) => {
+    if (!post) return;
+    setRollingBack(version_number);
+    try {
+      const res = await rollbackPost(post.id, version_number);
+      setPost(res.data);
+      setEditText(res.data.text);
+      setShowVersions(false);
+      toast.success(`Rolled back to version ${version_number}`);
+    } catch {
+      toast.error("Rollback failed");
+    } finally {
+      setRollingBack(null);
+    }
+  };
 
   useEffect(() => {
     getPost(id)
@@ -390,6 +425,49 @@ export default function PostDetailPage() {
           </dl>
         </Card>
       )}
+
+      {/* Version history */}
+      <Card className="mt-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-bold text-text-primary">Version History</h3>
+          <Button variant="ghost" className="text-xs" onClick={handleToggleVersions}>
+            {showVersions ? "Hide" : "Show history"}
+          </Button>
+        </div>
+        {showVersions && (
+          <div className="mt-3 space-y-3">
+            {loadingVersions ? (
+              <p className="text-xs text-text-muted">Loading...</p>
+            ) : versions.length === 0 ? (
+              <p className="text-xs text-text-muted">No previous versions — edit the post to create one.</p>
+            ) : (
+              versions.map((v) => (
+                <div key={v.id} className="rounded-md border border-border bg-elevated p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold text-text-primary">Version {v.version_number}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-text-muted">
+                        {new Date(v.created_at).toLocaleDateString()} {new Date(v.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                      {(post.status === "draft" || post.status === "rejected") && (
+                        <Button
+                          variant="ghost"
+                          className="text-xs h-6 px-2"
+                          onClick={() => handleRollback(v.version_number)}
+                          disabled={rollingBack === v.version_number}
+                        >
+                          {rollingBack === v.version_number ? "Restoring..." : "Restore"}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-xs text-text-secondary line-clamp-3 whitespace-pre-wrap">{v.text}</p>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </Card>
     </div>
   );
 }

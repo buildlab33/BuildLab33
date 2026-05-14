@@ -296,6 +296,12 @@ export const reschedulePost = (id: string, scheduled_at: string) =>
 export const forceSchedulePost = (id: string, scheduled_at: string) =>
   api.post<PostItem>(`/api/posts/${id}/force-schedule`, { scheduled_at });
 
+export const getPostVersions = (id: string) =>
+  api.get<{ versions: Array<{ id: string; version_number: number; text: string; created_by: string; created_at: string }> }>(`/api/posts/${id}/versions`);
+
+export const rollbackPost = (id: string, version_number: number) =>
+  api.post<PostItem>(`/api/posts/${id}/rollback/${version_number}`);
+
 // ── Trends ────────────────────────────────────────────────────────────────
 
 export interface TrendHeadline {
