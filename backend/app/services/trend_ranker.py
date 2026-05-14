@@ -109,7 +109,7 @@ def compute_preference_boost(headline_url: str, preferences: list[dict[str, Any]
             boost += weight * decay
         except Exception:
             continue
-    return min(boost / 3.0, 1.0)
+    return min(boost / BOOST_SAVED, 1.0)
 
 
 def _title_similarity(a: str, b: str) -> float:
