@@ -401,46 +401,56 @@ export default function LeadDiscoverPage() {
             </p>
           </div>
 
-          <div className="bg-surface border border-border rounded-xl p-6 space-y-5 text-left">
-            {/* Brand selector */}
-            <div>
-              <label className="block text-sm font-medium text-text mb-1.5">
-                Brand
-              </label>
-              {loadingBrands ? (
-                <div className="h-10 bg-border rounded-lg animate-pulse" />
-              ) : (
-                <div className="relative">
-                  <select
-                    className="appearance-none bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text pr-7 w-full"
-                    value={selectedBrandId}
-                    onChange={(e) => handleBrandChange(e.target.value)}
-                    disabled={brands.length === 0}
-                  >
-                    {brands.length === 0 && (
-                      <option value="">No brands found</option>
-                    )}
-                    {brands.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name}
-                      </option>
-                    ))}
-                  </select>
-                  <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-muted text-xs">
-                    &#9660;
-                  </span>
-                </div>
-              )}
+          {!loadingBrands && brands.length === 0 ? (
+            <div className="bg-surface border border-border rounded-xl p-6 space-y-4 text-left">
+              <p className="text-sm text-text-muted leading-relaxed">
+                You need at least one brand before discovering leads. Brand context helps AI suggest the right influencers and partners.
+              </p>
+              <Link
+                href="/dashboard/brands/new"
+                className="inline-flex items-center gap-2 bg-primary text-white text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
+              >
+                Create your first brand
+              </Link>
             </div>
+          ) : (
+            <div className="bg-surface border border-border rounded-xl p-6 space-y-5 text-left">
+              {/* Brand selector */}
+              <div>
+                <label className="block text-sm font-medium text-text mb-1.5">
+                  Brand
+                </label>
+                {loadingBrands ? (
+                  <div className="h-10 bg-border rounded-lg animate-pulse" />
+                ) : (
+                  <div className="relative">
+                    <select
+                      className="appearance-none bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text pr-7 w-full"
+                      value={selectedBrandId}
+                      onChange={(e) => handleBrandChange(e.target.value)}
+                    >
+                      {brands.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.name}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-muted text-xs">
+                      &#9660;
+                    </span>
+                  </div>
+                )}
+              </div>
 
-            <button
-              onClick={handleFindLeads}
-              disabled={!selectedBrandId || loadingBrands}
-              className="w-full bg-primary text-white font-medium py-2.5 rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity text-sm"
-            >
-              Find Leads
-            </button>
-          </div>
+              <button
+                onClick={handleFindLeads}
+                disabled={!selectedBrandId || loadingBrands}
+                className="w-full bg-primary text-white font-medium py-2.5 rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity text-sm"
+              >
+                Find Leads
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );

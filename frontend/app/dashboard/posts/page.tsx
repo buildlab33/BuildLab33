@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { getPosts, submitPost, deletePost, PostItem, getBrands, BrandPublic } from "@/lib/api";
+import { getPosts, submitPost, unsubmitPost, deletePost, PostItem, getBrands, BrandPublic } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -60,6 +60,20 @@ export default function PostsPage() {
       loadPosts();
     } catch {
       toast.error("Failed to submit post");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleUnsubmit = async (e: React.MouseEvent, post: PostItem) => {
+    e.stopPropagation();
+    setActionLoading(post.id);
+    try {
+      await unsubmitPost(post.id);
+      toast.success("Post moved back to draft");
+      loadPosts();
+    } catch {
+      toast.error("Failed to unsubmit post");
     } finally {
       setActionLoading(null);
     }
@@ -212,6 +226,16 @@ export default function PostsPage() {
                     onClick={() => router.push(`/dashboard/posts/${post.id}`)}
                   >
                     Edit &amp; Resubmit
+                  </Button>
+                )}
+                {post.status === "pending" && (
+                  <Button
+                    variant="ghost"
+                    className="text-xs px-3 py-1.5 h-auto text-text-muted"
+                    disabled={actionLoading === post.id}
+                    onClick={(e) => handleUnsubmit(e, post)}
+                  >
+                    Un-submit
                   </Button>
                 )}
                 {isAdmin && post.status === "pending" && (

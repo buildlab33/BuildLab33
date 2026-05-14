@@ -275,6 +275,9 @@ export const updatePost = (id: string, text: string) =>
 export const submitPost = (id: string) =>
   api.post<PostItem>(`/api/posts/${id}/submit`);
 
+export const unsubmitPost = (id: string) =>
+  api.post<PostItem>(`/api/posts/${id}/unsubmit`);
+
 export const approvePost = (id: string) =>
   api.post<PostItem>(`/api/posts/${id}/approve`);
 

@@ -210,6 +210,25 @@ async def submit_post(post_id: str, user: Annotated[dict, Depends(current_user)]
     return result
 
 
+@router.post("/{post_id}/unsubmit", response_model=PostOut)
+async def unsubmit_post(post_id: str, user: Annotated[dict, Depends(current_user)]):
+    """Move a pending post back to draft (own only). Lets users self-correct before admin review."""
+    sb = get_supabase()
+    res = sb.table("posts").select("*").eq("id", post_id).limit(1).execute()
+    if not res.data:
+        raise HTTPException(status_code=404, detail="Post not found")
+    post = res.data[0]
+    if post["created_by"] != user["sub"] and user.get("role") != "super_admin":
+        raise HTTPException(status_code=403, detail="Access denied")
+    if post["status"] != "pending":
+        raise HTTPException(status_code=400, detail=f"Only pending posts can be unsubmitted (current: {post['status']})")
+    now = datetime.now(timezone.utc).isoformat()
+    updated = sb.table("posts").update({"status": "draft", "updated_at": now}).eq("id", post_id).execute()
+    if not updated.data:
+        raise HTTPException(status_code=500, detail="Update failed or row no longer accessible")
+    return updated.data[0]
+
+
 @router.post("/{post_id}/approve", response_model=PostOut)
 async def approve_post(post_id: str, user: Annotated[dict, Depends(current_user)]):
     """Move pending -> approved. Admin or Super Admin only."""

@@ -104,7 +104,7 @@ export default function NewBrandPage() {
     setSaving(true);
     try {
       const pillars = (voiceConfig.content_pillars as Array<{ name: string; description: string }>) || [];
-      await createBrand({
+      const res = await createBrand({
         name,
         industry,
         brand_colour: brandColour,
@@ -114,7 +114,8 @@ export default function NewBrandPage() {
         voice_config: voiceConfig,
       });
       toast.success(`${name} created successfully`);
-      router.push("/dashboard/brands");
+      const brandId = (res.data as { id?: string })?.id;
+      router.push(brandId ? `/dashboard/brands/${brandId}` : "/dashboard/brands");
     } catch {
       toast.error("Failed to save brand");
     } finally {
