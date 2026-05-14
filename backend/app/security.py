@@ -6,6 +6,7 @@ import bcrypt
 import jwt
 from fastapi import Depends, Header, HTTPException, status
 from app.config import get_settings
+from app.database import get_supabase
 
 Role = Literal["super_admin", "admin", "user", "guest"]
 ROLE_ORDER: dict[str, int] = {"guest": 0, "user": 1, "admin": 2, "super_admin": 3}
@@ -22,12 +23,13 @@ def verify_password(plain: str, hashed: str) -> bool:
         return False
 
 
-def create_access_token(user_id: str, role: Role) -> str:
+def create_access_token(user_id: str, role: Role, token_version: int = 0) -> str:
     settings = get_settings()
     now = datetime.now(timezone.utc)
     payload = {
         "sub": user_id,
         "role": role,
+        "ver": token_version,
         "iat": int(now.timestamp()),
         "exp": int((now + timedelta(minutes=settings.jwt_access_ttl_minutes)).timestamp()),
         "type": "access",
@@ -65,6 +67,13 @@ async def current_user(authorization: Annotated[str | None, Header()] = None) ->
     payload = decode_token(token)
     if payload.get("type") != "access":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Wrong token type")
+    # Validate token_version so logout-all immediately invalidates existing tokens
+    sb = get_supabase()
+    res = sb.table("users").select("token_version, archived").eq("id", payload["sub"]).limit(1).execute()
+    if not res.data or res.data[0].get("archived"):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+    if payload.get("ver", 0) != (res.data[0].get("token_version") or 0):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session invalidated")
     return payload
 
 

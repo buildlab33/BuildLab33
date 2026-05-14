@@ -37,7 +37,7 @@ export default function ForgotPasswordPage() {
           <p className="text-sm text-text-muted mb-6">
             If that email is registered, we&apos;ve sent a reset link. It expires in 1 hour.
           </p>
-          {devToken && (
+          {devToken && process.env.NODE_ENV !== "production" && (
             <div className="bg-elevated border border-border rounded-lg p-4 mb-4 text-left">
               <p className="text-xs text-warning font-semibold mb-1">Dev mode — reset token:</p>
               <p className="text-xs text-text-secondary break-all font-mono">{devToken}</p>

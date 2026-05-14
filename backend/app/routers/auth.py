@@ -43,7 +43,8 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 # ── Username availability check ──────────────────────────────────────────────
 
 @router.get("/check-username")
-async def check_username(username: str = Query(min_length=3, max_length=30)):
+@limiter.limit("20/minute")
+async def check_username(request: Request, username: str = Query(min_length=3, max_length=30)):
     """Return whether a username is available."""
     sb = get_supabase()
     res = sb.table("users").select("id").eq("username", username.lower()).execute()
@@ -92,7 +93,7 @@ async def login(request: Request, body: LoginRequest):
         pass  # audit log failure should not block login
 
     return TokenPair(
-        access_token=create_access_token(user["id"], user["role"]),
+        access_token=create_access_token(user["id"], user["role"], user.get("token_version") or 0),
         refresh_token=create_refresh_token(user["id"]),
     )
 
@@ -137,7 +138,7 @@ async def login_2fa(request: Request, body: TwoFALoginRequest):
         pass
 
     return TokenPair(
-        access_token=create_access_token(user["id"], user["role"]),
+        access_token=create_access_token(user["id"], user["role"], user.get("token_version") or 0),
         refresh_token=create_refresh_token(user["id"]),
     )
 
@@ -145,17 +146,18 @@ async def login_2fa(request: Request, body: TwoFALoginRequest):
 # ── Refresh token ────────────────────────────────────────────────────────────
 
 @router.post("/refresh", response_model=TokenPair)
-async def refresh(body: RefreshRequest):
+@limiter.limit("30/minute")
+async def refresh(request: Request, body: RefreshRequest):
     payload = decode_token(body.refresh_token)
     if payload.get("type") != "refresh":
         raise HTTPException(status_code=401, detail="Wrong token type")
     sb = get_supabase()
-    res = sb.table("users").select("id, role, archived").eq("id", payload["sub"]).limit(1).execute()
+    res = sb.table("users").select("id, role, archived, token_version").eq("id", payload["sub"]).limit(1).execute()
     if not res.data or res.data[0].get("archived"):
         raise HTTPException(status_code=401, detail="User not found")
     user = res.data[0]
     return TokenPair(
-        access_token=create_access_token(user["id"], user["role"]),
+        access_token=create_access_token(user["id"], user["role"], user.get("token_version") or 0),
         refresh_token=create_refresh_token(user["id"]),
     )
 
