@@ -6,6 +6,7 @@ import { useAuthStore } from "@/store/auth";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { LoadingScreen } from "@/components/layout/LoadingScreen";
 import { useInactivityLogout } from "@/hooks/useInactivityLogout";
+import { THEMES } from "@/lib/theme";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -29,10 +30,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       try {
         const res = await getMe();
         setAuth(res.data);
-        // Apply user's DB theme
-        if (res.data.theme === "day" || res.data.theme === "night") {
-          localStorage.setItem("theme", res.data.theme);
-          document.documentElement.setAttribute("data-theme", res.data.theme);
+        // Apply user's DB theme (night → midnight for backwards compat)
+        const rawTheme = res.data.theme === "night" ? "midnight" : res.data.theme;
+        const validTheme = THEMES.find((t) => t.id === rawTheme);
+        if (validTheme) {
+          localStorage.setItem("theme", validTheme.id);
+          document.documentElement.setAttribute("data-theme", validTheme.id);
         }
       } catch {
         router.push("/login");

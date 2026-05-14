@@ -60,22 +60,197 @@ body {
     0 1px 3px rgba(0,0,0,0.25);
 }
 
-/* Day mode overrides */
+/* ── Theme overrides ──────────────────────────────────────────────────────── */
+
+/* midnight — default dark (same as @theme baseline, listed for clarity) */
+[data-theme="midnight"] {
+  --color-base: #080c14;
+  --color-surface: #0f1623;
+  --color-sidebar: #0b0f1c;
+  --color-elevated: #1a2236;
+  --color-border: #232d42;
+  --color-border-active: rgba(99,102,241,0.5);
+  --color-primary: #6366f1;
+  --color-secondary: #ec4899;
+  --color-primary-muted: rgba(99,102,241,0.13);
+  --color-secondary-muted: rgba(236,72,153,0.13);
+  --color-text-primary: #f1f5f9;
+  --color-text-secondary: #94a3b8;
+  --color-text-muted: #4e6080;
+  --color-text-active: #a5b4fc;
+}
+[data-theme="midnight"] body { background-color: #080c14; color: #f1f5f9; }
+
+/* day — clean light mode */
 [data-theme="day"] {
   --color-base: #f0f4f8;
   --color-surface: #ffffff;
   --color-sidebar: #e8edf5;
   --color-elevated: #e2e8f0;
   --color-border: #cbd5e1;
+  --color-border-active: rgba(99,102,241,0.4);
+  --color-primary: #6366f1;
+  --color-secondary: #ec4899;
+  --color-primary-muted: rgba(99,102,241,0.1);
+  --color-secondary-muted: rgba(236,72,153,0.1);
   --color-text-primary: #0f172a;
   --color-text-secondary: #475569;
   --color-text-muted: #94a3b8;
+  --color-text-active: #6366f1;
 }
+[data-theme="day"] body { background-color: #f0f4f8; color: #0f172a; }
 
-[data-theme="day"] body {
-  background-color: #f0f4f8;
-  color: #0f172a;
+/* ocean — deep blue-teal */
+[data-theme="ocean"] {
+  --color-base: #07111f;
+  --color-surface: #0d1f33;
+  --color-sidebar: #091929;
+  --color-elevated: #142d47;
+  --color-border: #1e3a55;
+  --color-border-active: rgba(14,165,233,0.5);
+  --color-primary: #0ea5e9;
+  --color-secondary: #06b6d4;
+  --color-primary-muted: rgba(14,165,233,0.13);
+  --color-secondary-muted: rgba(6,182,212,0.13);
+  --color-text-primary: #e0f2fe;
+  --color-text-secondary: #7dd3fc;
+  --color-text-muted: #3b6f8a;
+  --color-text-active: #38bdf8;
 }
+[data-theme="ocean"] body { background-color: #07111f; color: #e0f2fe; }
+
+/* forest — deep green */
+[data-theme="forest"] {
+  --color-base: #061209;
+  --color-surface: #0c1f10;
+  --color-sidebar: #081509;
+  --color-elevated: #122b16;
+  --color-border: #1a3f20;
+  --color-border-active: rgba(34,197,94,0.5);
+  --color-primary: #22c55e;
+  --color-secondary: #86efac;
+  --color-primary-muted: rgba(34,197,94,0.13);
+  --color-secondary-muted: rgba(134,239,172,0.13);
+  --color-text-primary: #dcfce7;
+  --color-text-secondary: #86efac;
+  --color-text-muted: #3a6845;
+  --color-text-active: #4ade80;
+}
+[data-theme="forest"] body { background-color: #061209; color: #dcfce7; }
+
+/* rose — warm pink/red accent */
+[data-theme="rose"] {
+  --color-base: #120810;
+  --color-surface: #1e0f1a;
+  --color-sidebar: #180c16;
+  --color-elevated: #2d1425;
+  --color-border: #3f1c34;
+  --color-border-active: rgba(244,63,94,0.5);
+  --color-primary: #f43f5e;
+  --color-secondary: #fb7185;
+  --color-primary-muted: rgba(244,63,94,0.13);
+  --color-secondary-muted: rgba(251,113,133,0.13);
+  --color-text-primary: #ffe4e6;
+  --color-text-secondary: #fda4af;
+  --color-text-muted: #6b3040;
+  --color-text-active: #fb7185;
+}
+[data-theme="rose"] body { background-color: #120810; color: #ffe4e6; }
+
+/* slate — cool neutral dark */
+[data-theme="slate"] {
+  --color-base: #0a0d12;
+  --color-surface: #131720;
+  --color-sidebar: #0d1019;
+  --color-elevated: #1c2333;
+  --color-border: #2a3447;
+  --color-border-active: rgba(148,163,184,0.5);
+  --color-primary: #94a3b8;
+  --color-secondary: #cbd5e1;
+  --color-primary-muted: rgba(148,163,184,0.12);
+  --color-secondary-muted: rgba(203,213,225,0.12);
+  --color-text-primary: #f1f5f9;
+  --color-text-secondary: #94a3b8;
+  --color-text-muted: #475569;
+  --color-text-active: #cbd5e1;
+}
+[data-theme="slate"] body { background-color: #0a0d12; color: #f1f5f9; }
+
+/* amber — warm orange-gold */
+[data-theme="amber"] {
+  --color-base: #130d04;
+  --color-surface: #1f1507;
+  --color-sidebar: #180f05;
+  --color-elevated: #2e1e08;
+  --color-border: #3d2a0d;
+  --color-border-active: rgba(245,158,11,0.5);
+  --color-primary: #f59e0b;
+  --color-secondary: #fbbf24;
+  --color-primary-muted: rgba(245,158,11,0.13);
+  --color-secondary-muted: rgba(251,191,36,0.13);
+  --color-text-primary: #fef3c7;
+  --color-text-secondary: #fcd34d;
+  --color-text-muted: #6b4f1a;
+  --color-text-active: #fbbf24;
+}
+[data-theme="amber"] body { background-color: #130d04; color: #fef3c7; }
+
+/* violet — deep purple */
+[data-theme="violet"] {
+  --color-base: #0d0814;
+  --color-surface: #160e21;
+  --color-sidebar: #10091b;
+  --color-elevated: #1f1330;
+  --color-border: #2e1d45;
+  --color-border-active: rgba(139,92,246,0.5);
+  --color-primary: #8b5cf6;
+  --color-secondary: #a78bfa;
+  --color-primary-muted: rgba(139,92,246,0.13);
+  --color-secondary-muted: rgba(167,139,250,0.13);
+  --color-text-primary: #ede9fe;
+  --color-text-secondary: #c4b5fd;
+  --color-text-muted: #5b3f8c;
+  --color-text-active: #a78bfa;
+}
+[data-theme="violet"] body { background-color: #0d0814; color: #ede9fe; }
+
+/* dusk — warm sepia/brown */
+[data-theme="dusk"] {
+  --color-base: #110e08;
+  --color-surface: #1c180f;
+  --color-sidebar: #16120b;
+  --color-elevated: #28231a;
+  --color-border: #3a3124;
+  --color-border-active: rgba(180,130,80,0.5);
+  --color-primary: #d4935a;
+  --color-secondary: #e8b48a;
+  --color-primary-muted: rgba(212,147,90,0.13);
+  --color-secondary-muted: rgba(232,180,138,0.13);
+  --color-text-primary: #fdf6ec;
+  --color-text-secondary: #d4b896;
+  --color-text-muted: #6b5a3e;
+  --color-text-active: #e8b48a;
+}
+[data-theme="dusk"] body { background-color: #110e08; color: #fdf6ec; }
+
+/* nordic — muted blue-grey */
+[data-theme="nordic"] {
+  --color-base: #0e1217;
+  --color-surface: #161c25;
+  --color-sidebar: #11161e;
+  --color-elevated: #1e2836;
+  --color-border: #2c3a4d;
+  --color-border-active: rgba(100,160,200,0.5);
+  --color-primary: #64a0c8;
+  --color-secondary: #88c0d0;
+  --color-primary-muted: rgba(100,160,200,0.13);
+  --color-secondary-muted: rgba(136,192,208,0.13);
+  --color-text-primary: #eceff4;
+  --color-text-secondary: #88c0d0;
+  --color-text-muted: #4a6075;
+  --color-text-active: #81b8cc;
+}
+[data-theme="nordic"] body { background-color: #0e1217; color: #eceff4; }
 
 /* Gradient utilities */
 .gradient-brand {

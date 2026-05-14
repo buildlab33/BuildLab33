@@ -1,47 +1,107 @@
 "use client";
 import { useState } from "react";
-import { useTheme } from "@/lib/theme";
+import { useTheme, THEMES, type Theme } from "@/lib/theme";
 import { updateMe } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Toggle } from "@/components/ui/toggle";
 import { toast } from "@/components/ui/toast";
-import { Moon, Sun } from "lucide-react";
+import { Check } from "lucide-react";
 
 export default function AppearancePage() {
   const { theme, setTheme } = useTheme();
-  const isDayMode = theme === "day";
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving] = useState<Theme | null>(null);
 
-  const handleToggle = async (day: boolean) => {
-    const next = day ? "day" : "night";
-    setTheme(next); // Apply instantly
-    setSaving(true);
+  const handleSelect = async (next: Theme) => {
+    if (next === theme || saving) return;
+    setTheme(next);
+    setSaving(next);
     try {
       await updateMe({ preferences: { theme: next } });
     } catch {
-      // Revert on failure
-      setTheme(day ? "night" : "day");
+      setTheme(theme);
       toast.error("Failed to save theme preference");
     } finally {
-      setSaving(false);
+      setSaving(null);
     }
   };
 
   return (
-    <div className="max-w-lg">
+    <div className="max-w-2xl">
       <Card>
-        <CardHeader><CardTitle>Appearance</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {isDayMode ? <Sun className="w-5 h-5 text-warning" /> : <Moon className="w-5 h-5 text-text-muted" />}
-              <div>
-                <p className="text-sm font-medium text-text-primary">{isDayMode ? "Day mode" : "Night mode"}</p>
-                <p className="text-xs text-text-muted">{isDayMode ? "Light background, dark text" : "Dark background, light text"}</p>
-              </div>
-            </div>
-            <Toggle checked={isDayMode} onChange={handleToggle} disabled={saving} label="Toggle day/night mode" />
+        <CardHeader>
+          <CardTitle>Appearance</CardTitle>
+          <p className="text-sm text-text-secondary mt-1">Choose a theme for your workspace</p>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {THEMES.map((t) => {
+              const isActive = theme === t.id;
+              const isSaving = saving === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => handleSelect(t.id)}
+                  disabled={!!saving}
+                  className={[
+                    "group relative flex flex-col rounded-xl border-2 overflow-hidden transition-all duration-150 text-left",
+                    isActive
+                      ? "border-primary ring-2 ring-primary/30 scale-[1.03]"
+                      : "border-border hover:border-primary/50 hover:scale-[1.02]",
+                    saving && !isSaving ? "opacity-60 cursor-not-allowed" : "cursor-pointer",
+                  ].join(" ")}
+                  aria-pressed={isActive}
+                  title={t.description}
+                >
+                  {/* Colour preview */}
+                  <div
+                    className="h-14 w-full flex items-center justify-center gap-1.5 px-3"
+                    style={{ backgroundColor: t.base }}
+                  >
+                    <div
+                      className="h-6 w-6 rounded-lg flex-shrink-0"
+                      style={{ backgroundColor: t.surface, border: `1px solid ${t.primary}33` }}
+                    />
+                    <div
+                      className="h-3 w-3 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: t.primary }}
+                    />
+                    <div
+                      className="h-2 flex-1 rounded-full"
+                      style={{ backgroundColor: t.primary, opacity: 0.35 }}
+                    />
+                  </div>
+
+                  {/* Label row */}
+                  <div
+                    className="px-3 py-2 flex items-center justify-between gap-1"
+                    style={{ backgroundColor: t.surface }}
+                  >
+                    <span
+                      className="text-xs font-semibold truncate"
+                      style={{ color: t.id === "day" ? "#0f172a" : "#f1f5f9" }}
+                    >
+                      {t.label}
+                    </span>
+                    {isActive && (
+                      <span
+                        className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
+                        style={{ backgroundColor: t.primary }}
+                      >
+                        {isSaving ? (
+                          <span className="w-2 h-2 border border-white/60 border-t-white rounded-full animate-spin block" />
+                        ) : (
+                          <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
+                        )}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
           </div>
+
+          <p className="mt-4 text-xs text-text-muted">
+            Theme is saved to your account and synced across devices.
+          </p>
         </CardContent>
       </Card>
     </div>

@@ -228,6 +228,8 @@ async def update_me(body: UpdateMeRequest, user: Annotated[dict, Depends(current
         res = sb.table("users").select("preferences").eq("id", user["sub"]).limit(1).execute()
         existing_prefs = res.data[0].get("preferences") or {} if res.data else {}
         updates["preferences"] = {**existing_prefs, **body.preferences}
+        if "theme" in body.preferences:
+            updates["theme"] = body.preferences["theme"]
     if not updates:
         raise HTTPException(status_code=400, detail="Nothing to update")
     sb.table("users").update(updates).eq("id", user["sub"]).execute()
