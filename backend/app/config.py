@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     # NewsAPI
     newsapi_key: str = ""
 
+    # Redis (Upstash)
+    redis_url: str = ""
+
     # Resend
     resend_api_key: str = ""
     resend_from_email: str = "no-reply@cop-platform.dev"
