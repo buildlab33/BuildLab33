@@ -10,7 +10,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
 from app.config import get_settings
-from app.routers import auth, brands, contacts, generate, news, notifications, posts, trends, users
+from app.routers import auth, brands, contacts, generate, leads, news, notifications, posts, trends, users
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -75,6 +75,7 @@ def create_app() -> FastAPI:
     app.include_router(posts.router, prefix=settings.api_prefix)
     app.include_router(users.router, prefix=settings.api_prefix)
     app.include_router(contacts.router, prefix=settings.api_prefix)
+    app.include_router(leads.router, prefix=settings.api_prefix)
     app.include_router(news.router, prefix=settings.api_prefix)
     app.include_router(trends.router, prefix=settings.api_prefix)
     return app
