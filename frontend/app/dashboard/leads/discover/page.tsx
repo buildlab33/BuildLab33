@@ -519,7 +519,7 @@ export default function LeadDiscoverPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {cards.map((card, index) => (
                 <LeadCard
-                  key={card.lead.handle || card.lead.name}
+                  key={`${card.lead.handle || card.lead.name}-${index}`}
                   card={card}
                   onOpenerChange={(val) => handleOpenerChange(index, val)}
                   onApprove={() => handleApprove(index)}
