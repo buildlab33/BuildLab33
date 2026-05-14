@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getBrands, generatePost, createPost } from "@/lib/api";
+import { getBrands, generatePost, createPost, TrendHeadline } from "@/lib/api";
+import { TrendAnchorPicker } from "@/components/domain/TrendAnchorPicker";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -38,6 +39,7 @@ function GenerateForm() {
   const [audience, setAudience] = useState("");
   const [format, setFormat] = useState("");
   const [angle, setAngle] = useState("");
+  const [trendAnchor, setTrendAnchor] = useState<TrendHeadline | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ text: string; platform: string; brand_id: string } | null>(null);
   const [error, setError] = useState("");
@@ -53,20 +55,26 @@ function GenerateForm() {
     });
   }, []);
 
-  const handleGenerate = async (e: React.FormEvent) => {
-    e.preventDefault();
+  function collectParams() {
+    return {
+      brand_id: brandId,
+      platform,
+      campaign_goal: goal,
+      audience,
+      content_format: format,
+      growth_angle: angle,
+      trend_context: trendAnchor
+        ? { title: trendAnchor.title, summary: trendAnchor.summary }
+        : undefined,
+    };
+  }
+
+  async function runGeneration(params: ReturnType<typeof collectParams>) {
     setError("");
     setResult(null);
     setLoading(true);
     try {
-      const res = await generatePost({
-        brand_id: brandId,
-        platform,
-        campaign_goal: goal,
-        audience,
-        content_format: format,
-        growth_angle: angle,
-      });
+      const res = await generatePost(params);
       setResult(res.data);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
@@ -74,6 +82,11 @@ function GenerateForm() {
     } finally {
       setLoading(false);
     }
+  }
+
+  const handleGenerate = (e: React.FormEvent) => {
+    e.preventDefault();
+    runGeneration(collectParams());
   };
 
   const handleCopy = () => {
@@ -119,7 +132,6 @@ function GenerateForm() {
       />
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
-        {/* Form */}
         <Card>
           <form onSubmit={handleGenerate}>
             <div className="mb-4">
@@ -129,7 +141,7 @@ function GenerateForm() {
                 className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2 pr-8 text-sm text-text-primary outline-none focus:border-primary focus:ring-1 focus:ring-primary appearance-none"
                 style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center" }}
                 value={brandId}
-                onChange={(e) => setBrandId(e.target.value)}
+                onChange={(e) => { setBrandId(e.target.value); setTrendAnchor(null); }}
                 required
               >
                 {brands.map((b) => (
@@ -187,7 +199,7 @@ function GenerateForm() {
               />
             </div>
 
-            <div className="mb-6">
+            <div className="mb-4">
               <Label htmlFor="angle-input">Growth Angle (optional)</Label>
               <Input
                 id="angle-input"
@@ -198,13 +210,21 @@ function GenerateForm() {
               />
             </div>
 
+            <TrendAnchorPicker
+              brandId={brandId}
+              goal={goal}
+              audience={audience}
+              platform={platform}
+              value={trendAnchor}
+              onChange={setTrendAnchor}
+            />
+
             <Button type="submit" disabled={loading} className="w-full">
               {loading ? "Generating..." : `✦ Generate for ${selectedBrand?.name || "Brand"}`}
             </Button>
           </form>
         </Card>
 
-        {/* Result */}
         <Card className="relative">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-sm font-bold text-text-primary">Generated Post</h3>
@@ -223,9 +243,7 @@ function GenerateForm() {
           )}
 
           {error && (
-            <div className="bg-red-50 text-error p-4 rounded-lg text-xs">
-              {error}
-            </div>
+            <div className="bg-red-50 text-error p-4 rounded-lg text-xs">{error}</div>
           )}
 
           {result && !loading && (
@@ -239,25 +257,16 @@ function GenerateForm() {
                 {result.text}
               </div>
               <div className="mt-4 flex gap-2 flex-wrap">
-                <Button
-                  className="text-xs"
-                  onClick={() => handleSave(true)}
-                  disabled={saving}
-                >
+                <Button className="text-xs" onClick={() => handleSave(true)} disabled={saving}>
                   {saving ? "Saving..." : "Submit for Approval"}
                 </Button>
-                <Button
-                  variant="ghost"
-                  className="text-xs border border-border"
-                  onClick={() => handleSave(false)}
-                  disabled={saving}
-                >
+                <Button variant="ghost" className="text-xs border border-border" onClick={() => handleSave(false)} disabled={saving}>
                   {saving ? "Saving..." : "Save as Draft"}
                 </Button>
                 <Button variant="ghost" onClick={handleCopy} className="text-xs">
                   {copied ? "✓ Copied" : "Copy"}
                 </Button>
-                <Button variant="ghost" className="text-xs border border-border" onClick={handleGenerate}>
+                <Button variant="ghost" className="text-xs border border-border" onClick={() => runGeneration(collectParams())}>
                   Regenerate
                 </Button>
               </div>
