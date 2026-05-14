@@ -31,9 +31,19 @@ def _sanitise(text: str, max_len: int) -> str:
     return text[:max_len]
 
 
-def _check_brand_access(brand_id: str, user_id: str) -> bool:
+def _check_brand_access(brand_id: str, user_id: str, user_role: str) -> bool:
     sb = get_supabase()
-    res = sb.table("brands").select("id").eq("id", brand_id).limit(1).execute()
+    if user_role in ("super_admin", "admin"):
+        res = sb.table("brands").select("id").eq("id", brand_id).limit(1).execute()
+        return bool(res.data)
+    res = (
+        sb.table("user_brands")
+        .select("brand_id")
+        .eq("user_id", user_id)
+        .eq("brand_id", brand_id)
+        .limit(1)
+        .execute()
+    )
     return bool(res.data)
 
 
@@ -133,7 +143,7 @@ async def get_trend_headlines(
     user: Annotated[dict, Depends(current_user)] = None,
 ):
     user_id = user["sub"]
-    if not _check_brand_access(brand_id, user_id):
+    if not _check_brand_access(brand_id, user_id, user["role"]):
         raise HTTPException(status_code=403, detail="Access denied")
 
     industry = _get_brand_industry(brand_id)
@@ -172,7 +182,7 @@ async def log_trend_interaction(
     user: Annotated[dict, Depends(current_user)],
 ):
     user_id = user["sub"]
-    if not _check_brand_access(body.brand_id, user_id):
+    if not _check_brand_access(body.brand_id, user_id, user["role"]):
         raise HTTPException(status_code=403, detail="Access denied")
     try:
         _log_interaction(user_id, body.brand_id, body)
