@@ -2,11 +2,36 @@
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 limiter = Limiter(key_func=get_remote_address)
+
+COOKIE_MAX_AGE_ACCESS = 15 * 60          # 15 minutes
+COOKIE_MAX_AGE_REFRESH = 7 * 24 * 60 * 60  # 7 days
+
+
+def _set_auth_cookies(response: Response, access_token: str, refresh_token: str) -> None:
+    is_prod = __import__("app.config", fromlist=["get_settings"]).get_settings().app_env == "production"
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        max_age=COOKIE_MAX_AGE_ACCESS,
+        httponly=True,
+        secure=is_prod,
+        samesite="lax",
+        path="/",
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        max_age=COOKIE_MAX_AGE_REFRESH,
+        httponly=True,
+        secure=is_prod,
+        samesite="lax",
+        path="/api/auth/refresh",
+    )
 
 from app.database import get_supabase
 from app.schemas.auth import (
@@ -55,7 +80,7 @@ async def check_username(request: Request, username: str = Query(min_length=3, m
 
 @router.post("/login")
 @limiter.limit("10/minute")
-async def login(request: Request, body: LoginRequest):
+async def login(request: Request, response: Response, body: LoginRequest):
     """Authenticate with username + password. Returns TokenPair, or 2FA pending if enabled."""
     sb = get_supabase()
     res = sb.table("users").select("*").eq("username", body.username.lower()).limit(1).execute()
@@ -92,17 +117,17 @@ async def login(request: Request, body: LoginRequest):
     except Exception:
         pass  # audit log failure should not block login
 
-    return TokenPair(
-        access_token=create_access_token(user["id"], user["role"], user.get("token_version") or 0),
-        refresh_token=create_refresh_token(user["id"]),
-    )
+    access_token = create_access_token(user["id"], user["role"], user.get("token_version") or 0)
+    refresh_token = create_refresh_token(user["id"])
+    _set_auth_cookies(response, access_token, refresh_token)
+    return TokenPair(access_token=access_token, refresh_token=refresh_token)
 
 
 # ── Login step 2 (2FA code) ──────────────────────────────────────────────────
 
 @router.post("/login/2fa", response_model=TokenPair)
 @limiter.limit("10/minute")
-async def login_2fa(request: Request, body: TwoFALoginRequest):
+async def login_2fa(request: Request, response: Response, body: TwoFALoginRequest):
     """Complete login by verifying TOTP code after password step."""
     from app.config import get_settings
     import jwt as pyjwt
@@ -137,18 +162,22 @@ async def login_2fa(request: Request, body: TwoFALoginRequest):
     except Exception:
         pass
 
-    return TokenPair(
-        access_token=create_access_token(user["id"], user["role"], user.get("token_version") or 0),
-        refresh_token=create_refresh_token(user["id"]),
-    )
+    access_token = create_access_token(user["id"], user["role"], user.get("token_version") or 0)
+    refresh_token = create_refresh_token(user["id"])
+    _set_auth_cookies(response, access_token, refresh_token)
+    return TokenPair(access_token=access_token, refresh_token=refresh_token)
 
 
 # ── Refresh token ────────────────────────────────────────────────────────────
 
 @router.post("/refresh", response_model=TokenPair)
 @limiter.limit("30/minute")
-async def refresh(request: Request, body: RefreshRequest):
-    payload = decode_token(body.refresh_token)
+async def refresh(request: Request, response: Response, body: RefreshRequest):
+    # Accept refresh token from cookie or request body
+    refresh_token = request.cookies.get("refresh_token") or body.refresh_token
+    if not refresh_token:
+        raise HTTPException(status_code=401, detail="No refresh token")
+    payload = decode_token(refresh_token)
     if payload.get("type") != "refresh":
         raise HTTPException(status_code=401, detail="Wrong token type")
     sb = get_supabase()
@@ -156,10 +185,20 @@ async def refresh(request: Request, body: RefreshRequest):
     if not res.data or res.data[0].get("archived"):
         raise HTTPException(status_code=401, detail="User not found")
     user = res.data[0]
-    return TokenPair(
-        access_token=create_access_token(user["id"], user["role"], user.get("token_version") or 0),
-        refresh_token=create_refresh_token(user["id"]),
-    )
+    access_token = create_access_token(user["id"], user["role"], user.get("token_version") or 0)
+    new_refresh = create_refresh_token(user["id"])
+    _set_auth_cookies(response, access_token, new_refresh)
+    return TokenPair(access_token=access_token, refresh_token=new_refresh)
+
+
+# ── Logout ───────────────────────────────────────────────────────────────────
+
+@router.post("/logout")
+async def logout(response: Response):
+    """Clear auth cookies."""
+    response.delete_cookie("access_token", path="/")
+    response.delete_cookie("refresh_token", path="/api/auth/refresh")
+    return {"message": "Logged out"}
 
 
 # ── Current user ─────────────────────────────────────────────────────────────

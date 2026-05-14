@@ -12,30 +12,18 @@ export interface User {
 
 interface AuthState {
   user: User | null;
-  accessToken: string | null;
-  setAuth: (user: User, accessToken: string, refreshToken: string) => void;
+  setUser: (user: User) => void;
   clearAuth: () => void;
-  loadFromStorage: () => void;
+  // kept for backward-compat with any remaining callers — no-ops now
+  setAuth: (user: User) => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
-  accessToken: null,
 
-  setAuth: (user, accessToken, refreshToken) => {
-    localStorage.setItem("access_token", accessToken);
-    localStorage.setItem("refresh_token", refreshToken);
-    set({ user, accessToken });
-  },
+  setUser: (user) => set({ user }),
 
-  clearAuth: () => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
-    set({ user: null, accessToken: null });
-  },
+  setAuth: (user) => set({ user }),
 
-  loadFromStorage: () => {
-    const token = localStorage.getItem("access_token");
-    if (token) set({ accessToken: token });
-  },
+  clearAuth: () => set({ user: null }),
 }));

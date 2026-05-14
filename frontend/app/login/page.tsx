@@ -33,12 +33,9 @@ export default function LoginPage() {
         return;
       }
 
-      // Normal login — fetch user profile
-      const { access_token, refresh_token } = data;
-      localStorage.setItem("access_token", access_token);
-      localStorage.setItem("refresh_token", refresh_token);
+      // Normal login — cookies set by backend; fetch user profile
       const meRes = await getMe();
-      setAuth(meRes.data, access_token, refresh_token);
+      setAuth(meRes.data);
       router.push("/dashboard");
     } catch (err: unknown) {
       const detail = (err as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;

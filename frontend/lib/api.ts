@@ -3,16 +3,11 @@ import axios from "axios";
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
   headers: { "Content-Type": "application/json" },
-});
-
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("access_token");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
+  withCredentials: true, // send httpOnly cookies on every request
 });
 
 let isRefreshing = false;
-let refreshQueue: Array<(token: string) => void> = [];
+let refreshQueue: Array<() => void> = [];
 
 api.interceptors.response.use(
   (res) => res,
@@ -20,38 +15,24 @@ api.interceptors.response.use(
     const original = err.config;
     if (err.response?.status === 401 && !original._retry) {
       original._retry = true;
-      const refreshToken = localStorage.getItem("refresh_token");
-      if (!refreshToken) {
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("refresh_token");
-        window.location.href = "/login";
-        return Promise.reject(err);
-      }
       if (isRefreshing) {
         return new Promise((resolve) => {
-          refreshQueue.push((token: string) => {
-            original.headers.Authorization = `Bearer ${token}`;
-            resolve(api(original));
-          });
+          refreshQueue.push(() => resolve(api(original)));
         });
       }
       isRefreshing = true;
       try {
-        const res = await axios.post(
+        // Cookie-based refresh — no body needed, refresh_token cookie sent automatically
+        await axios.post(
           `${process.env.NEXT_PUBLIC_API_URL}/api/auth/refresh`,
-          { refresh_token: refreshToken }
+          {},
+          { withCredentials: true }
         );
-        const { access_token, refresh_token } = res.data;
-        localStorage.setItem("access_token", access_token);
-        localStorage.setItem("refresh_token", refresh_token);
-        api.defaults.headers.common.Authorization = `Bearer ${access_token}`;
-        refreshQueue.forEach((cb) => cb(access_token));
+        refreshQueue.forEach((cb) => cb());
         refreshQueue = [];
-        original.headers.Authorization = `Bearer ${access_token}`;
         return api(original);
       } catch {
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("refresh_token");
+        refreshQueue = [];
         window.location.href = "/login";
         return Promise.reject(err);
       } finally {
@@ -61,6 +42,11 @@ api.interceptors.response.use(
     return Promise.reject(err);
   }
 );
+
+export const logout = () =>
+  api.post("/api/auth/logout").finally(() => {
+    window.location.href = "/login";
+  });
 
 export default api;
 

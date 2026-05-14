@@ -4,7 +4,7 @@ from typing import Annotated, Literal
 
 import bcrypt
 import jwt
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Depends, Header, HTTPException, Request, status
 from app.config import get_settings
 from app.database import get_supabase
 
@@ -59,11 +59,18 @@ def decode_token(token: str) -> dict:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
 
-async def current_user(authorization: Annotated[str | None, Header()] = None) -> dict:
-    """Returns the current authenticated user payload from the Authorization header."""
-    if not authorization or not authorization.lower().startswith("bearer "):
+async def current_user(
+    request: Request,
+    authorization: Annotated[str | None, Header()] = None,
+) -> dict:
+    """Returns the current authenticated user payload. Accepts httpOnly cookie or Bearer header."""
+    token: str | None = None
+    if authorization and authorization.lower().startswith("bearer "):
+        token = authorization.split(" ", 1)[1].strip()
+    elif hasattr(request, "cookies"):
+        token = request.cookies.get("access_token")
+    if not token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing token")
-    token = authorization.split(" ", 1)[1].strip()
     payload = decode_token(token)
     if payload.get("type") != "access":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Wrong token type")

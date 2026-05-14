@@ -9,7 +9,7 @@ import { useInactivityLogout } from "@/hooks/useInactivityLogout";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const { setAuth, loadFromStorage, clearAuth } = useAuthStore();
+  const { setAuth, clearAuth } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
 
@@ -26,12 +26,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     setMounted(true);
     const init = async () => {
-      loadFromStorage();
-      const token = localStorage.getItem("access_token");
-      if (!token) { router.push("/login"); return; }
       try {
         const res = await getMe();
-        setAuth(res.data, token, localStorage.getItem("refresh_token") ?? "");
+        setAuth(res.data);
         // Apply user's DB theme
         if (res.data.theme === "day" || res.data.theme === "night") {
           localStorage.setItem("theme", res.data.theme);
@@ -44,7 +41,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       }
     };
     init();
-  }, [router, setAuth, loadFromStorage]);
+  }, [router, setAuth]);
 
   if (!mounted || loading) return <LoadingScreen />;
 

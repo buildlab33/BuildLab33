@@ -27,12 +27,10 @@ export default function TwoFAPage() {
     const tempToken = sessionStorage.getItem("2fa_temp_token") ?? "";
     try {
       const res = await login2FA(tempToken, code);
-      const { access_token, refresh_token } = res.data;
       sessionStorage.removeItem("2fa_temp_token");
-      localStorage.setItem("access_token", access_token);
-      localStorage.setItem("refresh_token", refresh_token);
+      // Cookies set by backend — fetch user profile
       const meRes = await getMe();
-      setAuth(meRes.data, access_token, refresh_token);
+      setAuth(meRes.data);
       router.push("/dashboard");
     } catch {
       setError("Invalid code. Check your authenticator app and try again.");
