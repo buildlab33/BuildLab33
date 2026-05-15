@@ -125,8 +125,8 @@ export function Sidebar() {
           <>
             {/* Backdrop — closes panel on outside click */}
             <div className="fixed inset-0 z-[99]" onClick={() => setPanelOpen(false)} />
-            {/* Panel — anchored just right of sidebar, above bell */}
-            <div className="fixed bottom-16 left-[232px] w-80 bg-surface border border-border rounded-xl shadow-2xl z-[100] overflow-hidden">
+            {/* Panel — fixed inside sidebar footprint, floats above the bell */}
+            <div className="fixed bottom-[110px] left-0 w-[220px] bg-surface border border-border rounded-xl shadow-2xl z-[100] overflow-hidden">
               <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                 <span className="text-xs font-semibold text-text-primary">Notifications</span>
                 <button
