@@ -132,7 +132,7 @@ export function Sidebar() {
         </button>
 
         {panelOpen && (
-          <div className="absolute left-full top-0 ml-2 w-72 bg-surface border border-border rounded-xl shadow-xl z-50 overflow-hidden">
+          <div className="fixed bottom-20 left-[228px] w-72 bg-surface border border-border rounded-xl shadow-xl z-[100] overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 border-b border-border">
               <span className="text-xs font-semibold text-text-primary">Notifications</span>
               <button
