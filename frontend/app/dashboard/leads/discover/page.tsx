@@ -2,10 +2,12 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 import { getBrands, BrandPublic } from "@/lib/api";
 import { discoverLeads, LeadSuggestion } from "@/lib/leads-api";
 import { getContacts, createContact, ContactItem } from "@/lib/contacts-api";
+import { Button } from "@/components/ui/button";
+import { ChevronDown, Loader2 } from "lucide-react";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -30,14 +32,14 @@ function fitScoreClass(score: number): string {
 
 function platformBadgeClass(platform: string): string {
   const map: Record<string, string> = {
-    instagram: "bg-pink-100 text-pink-700",
-    youtube: "bg-red-100 text-red-700",
-    linkedin: "bg-blue-100 text-blue-700",
-    blog: "bg-purple-100 text-purple-700",
-    podcast: "bg-indigo-100 text-indigo-700",
-    twitter: "bg-sky-100 text-sky-700",
+    instagram: "bg-pink-500/15 text-pink-400",
+    youtube: "bg-red-500/15 text-red-400",
+    linkedin: "bg-blue-500/15 text-blue-400",
+    blog: "bg-purple-500/15 text-purple-400",
+    podcast: "bg-indigo-500/15 text-indigo-400",
+    twitter: "bg-sky-500/15 text-sky-400",
   };
-  return map[platform] ?? "bg-surface text-text-muted";
+  return map[platform] ?? "bg-elevated text-text-muted";
 }
 
 function isDuplicate(lead: LeadSuggestion, contacts: ContactItem[]): ContactItem | null {
@@ -126,7 +128,7 @@ function LeadCard({ card, onOpenerChange, onApprove, onDismiss }: LeadCardProps)
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
         <div>
-          <h3 className="font-semibold text-text text-base">{lead.name}</h3>
+          <h3 className="font-semibold text-text-primary text-base">{lead.name}</h3>
           <p className="text-text-muted text-xs mt-0.5">
             {lead.handle}
             {lead.company ? ` · ${lead.company}` : ""}
@@ -144,7 +146,7 @@ function LeadCard({ card, onOpenerChange, onApprove, onDismiss }: LeadCardProps)
 
       {/* Niche + audience */}
       <div className="flex flex-wrap items-center gap-2 text-xs">
-        <span className="bg-background border border-border rounded px-2 py-0.5 text-text-muted">
+        <span className="bg-elevated border border-border rounded px-2 py-0.5 text-text-muted">
           {lead.niche}
         </span>
         <span className="text-text-muted">{lead.audience_size}</span>
@@ -159,7 +161,7 @@ function LeadCard({ card, onOpenerChange, onApprove, onDismiss }: LeadCardProps)
           Outreach opener
         </label>
         <textarea
-          className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-text resize-none focus:outline-none focus:ring-2 focus:ring-primary/40"
+          className="w-full bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-text-primary resize-none focus:outline-none focus:ring-2 focus:ring-primary/40"
           rows={3}
           value={opener}
           onChange={(e) => onOpenerChange(e.target.value)}
@@ -168,30 +170,16 @@ function LeadCard({ card, onOpenerChange, onApprove, onDismiss }: LeadCardProps)
 
       {/* Footer actions */}
       <div className="flex items-center gap-2 pt-1">
-        <button
-          onClick={onApprove}
-          disabled={status === "approving"}
-          className="inline-flex items-center gap-2 bg-primary text-white text-sm font-medium px-4 py-1.5 rounded-lg hover:opacity-90 disabled:opacity-60 transition-opacity"
-        >
+        <Button size="sm" onClick={onApprove} disabled={status === "approving"}>
           {status === "approving" ? (
-            <>
-              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-              </svg>
-              Importing…
-            </>
+            <><Loader2 size={14} className="animate-spin" /> Importing…</>
           ) : (
             "Approve"
           )}
-        </button>
-        <button
-          onClick={onDismiss}
-          disabled={status === "approving"}
-          className="text-sm text-text-muted px-3 py-1.5 rounded-lg hover:bg-background transition-colors disabled:opacity-50"
-        >
+        </Button>
+        <Button variant="ghost" size="sm" onClick={onDismiss} disabled={status === "approving"} className="text-text-muted">
           Dismiss
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -209,7 +197,8 @@ export default function LeadDiscoverPage() {
   const [dismissedCount, setDismissedCount] = useState(0);
   const [loadingBrands, setLoadingBrands] = useState(true);
 
-  // Load brands on mount
+  useEffect(() => { document.title = "Discover Leads · COP Platform"; }, []);
+
   useEffect(() => {
     getBrands()
       .then((res) => {
@@ -392,10 +381,10 @@ export default function LeadDiscoverPage() {
 
   if (pageState === "empty") {
     return (
-      <div className="min-h-screen bg-background px-4 py-10">
+      <div className="py-6">
         <div className="max-w-lg mx-auto text-center space-y-6">
           <div>
-            <h1 className="text-2xl font-bold text-text">Discover Leads</h1>
+            <h1 className="text-2xl font-bold text-text-primary">Discover Leads</h1>
             <p className="text-text-muted text-sm mt-2">
               AI will suggest influencers and partners based on your brand&apos;s content pillars and voice
             </p>
@@ -406,18 +395,14 @@ export default function LeadDiscoverPage() {
               <p className="text-sm text-text-muted leading-relaxed">
                 You need at least one brand before discovering leads. Brand context helps AI suggest the right influencers and partners.
               </p>
-              <Link
-                href="/dashboard/brands/new"
-                className="inline-flex items-center gap-2 bg-primary text-white text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
-              >
-                Create your first brand
+              <Link href="/dashboard/brands/new">
+                <Button>Create your first brand</Button>
               </Link>
             </div>
           ) : (
             <div className="bg-surface border border-border rounded-xl p-6 space-y-5 text-left">
-              {/* Brand selector */}
               <div>
-                <label className="block text-sm font-medium text-text mb-1.5">
+                <label className="block text-sm font-medium text-text-primary mb-1.5">
                   Brand
                 </label>
                 {loadingBrands ? (
@@ -425,30 +410,26 @@ export default function LeadDiscoverPage() {
                 ) : (
                   <div className="relative">
                     <select
-                      className="appearance-none bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text pr-7 w-full"
+                      className="appearance-none bg-surface border border-border rounded-lg px-3 py-2 pr-8 text-sm text-text-primary w-full focus:outline-none focus:border-primary cursor-pointer"
                       value={selectedBrandId}
                       onChange={(e) => handleBrandChange(e.target.value)}
                     >
                       {brands.map((b) => (
-                        <option key={b.id} value={b.id}>
-                          {b.name}
-                        </option>
+                        <option key={b.id} value={b.id}>{b.name}</option>
                       ))}
                     </select>
-                    <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-muted text-xs">
-                      &#9660;
-                    </span>
+                    <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
                   </div>
                 )}
               </div>
 
-              <button
+              <Button
                 onClick={handleFindLeads}
                 disabled={!selectedBrandId || loadingBrands}
-                className="w-full bg-primary text-white font-medium py-2.5 rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity text-sm"
+                className="w-full"
               >
                 Find Leads
-              </button>
+              </Button>
             </div>
           )}
         </div>
@@ -460,13 +441,13 @@ export default function LeadDiscoverPage() {
 
   if (pageState === "loading") {
     return (
-      <div className="min-h-screen bg-background px-4 py-10">
+      <div className="py-6">
         <div className="max-w-3xl mx-auto space-y-6">
           <div>
-            <h1 className="text-2xl font-bold text-text">Discover Leads</h1>
+            <h1 className="text-2xl font-bold text-text-primary">Discover Leads</h1>
             <p className="text-text-muted text-sm mt-1">
               Finding influencers and partners for{" "}
-              <span className="font-medium text-text">{selectedBrand?.name ?? "your brand"}</span>…
+              <span className="font-medium text-text-primary">{selectedBrand?.name ?? "your brand"}</span>…
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -487,33 +468,28 @@ export default function LeadDiscoverPage() {
     );
 
     return (
-      <div className="min-h-screen bg-background px-4 py-10">
+      <div className="py-6">
         <div className="max-w-3xl mx-auto space-y-6">
           {/* Header */}
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-text">Discover Leads</h1>
+              <h1 className="text-2xl font-bold text-text-primary">Discover Leads</h1>
               <p className="text-text-muted text-sm mt-1">
                 {visibleCards.length} suggestion{visibleCards.length !== 1 ? "s" : ""} for{" "}
-                <span className="font-medium text-text">{selectedBrand?.name}</span>
+                <span className="font-medium text-text-primary">{selectedBrand?.name}</span>
               </p>
             </div>
-            {/* Brand switcher */}
             <div className="relative shrink-0">
               <select
-                className="appearance-none bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text pr-7"
+                className="appearance-none bg-surface border border-border rounded-lg px-3 py-2 pr-8 text-sm text-text-primary focus:outline-none focus:border-primary cursor-pointer"
                 value={selectedBrandId}
                 onChange={(e) => handleBrandChange(e.target.value)}
               >
                 {brands.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
+                  <option key={b.id} value={b.id}>{b.name}</option>
                 ))}
               </select>
-              <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-muted text-xs">
-                &#9660;
-              </span>
+              <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
             </div>
           </div>
 
@@ -546,34 +522,28 @@ export default function LeadDiscoverPage() {
   // ── Render: Completion ────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-background px-4 py-10">
+    <div className="py-6">
       <div className="max-w-lg mx-auto text-center space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-text">All done</h1>
+          <h1 className="text-2xl font-bold text-text-primary">All done</h1>
         </div>
 
         <div className="bg-surface border border-border rounded-xl p-8 space-y-5">
           {approvedCount > 0 ? (
             <>
-              <p className="text-text text-base">
+              <p className="text-text-primary text-base">
                 <span className="font-semibold text-success">{approvedCount} lead{approvedCount !== 1 ? "s" : ""} imported</span>
                 {dismissedCount > 0 && (
                   <span className="text-text-muted">, {dismissedCount} dismissed</span>
                 )}
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                <Link
-                  href="/dashboard/leads"
-                  className="inline-block bg-primary text-white text-sm font-medium px-5 py-2 rounded-lg hover:opacity-90 transition-opacity"
-                >
-                  View in Leads
+                <Link href="/dashboard/leads">
+                  <Button>View in Leads</Button>
                 </Link>
-                <button
-                  onClick={handleFindMore}
-                  className="text-sm text-text-muted px-5 py-2 rounded-lg border border-border hover:bg-background transition-colors"
-                >
+                <Button variant="ghost" onClick={handleFindMore}>
                   Find More
-                </button>
+                </Button>
               </div>
             </>
           ) : (
@@ -581,12 +551,7 @@ export default function LeadDiscoverPage() {
               <p className="text-text-muted text-sm leading-relaxed">
                 Nothing imported — try a different brand or adjust your content pillars.
               </p>
-              <button
-                onClick={handleFindMore}
-                className="bg-primary text-white text-sm font-medium px-5 py-2 rounded-lg hover:opacity-90 transition-opacity"
-              >
-                Find More
-              </button>
+              <Button onClick={handleFindMore}>Find More</Button>
             </>
           )}
         </div>

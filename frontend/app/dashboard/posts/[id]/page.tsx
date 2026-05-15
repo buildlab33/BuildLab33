@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import {
   getPost, updatePost, submitPost, unsubmitPost, approvePost, rejectPost,
   schedulePost, unschedulePost, getPostVersions, rollbackPost,
-  PostItem, getBrands, BrandPublic,
+  PostItem, getBrands, BrandPublic, getUsers,
 } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 import { Card } from "@/components/ui/card";
@@ -15,6 +15,20 @@ import { BrandBadge } from "@/components/domain/BrandBadge";
 import { StatusBadge } from "@/components/domain/StatusBadge";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "@/components/ui/toast";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { CharacterCounter } from "@/components/domain/CharacterCounter";
+import { ArrowLeft, ChevronDown, ChevronUp } from "lucide-react";
+import { getPlatformLimit } from "@/lib/platformLimits";
+
+interface VersionRow {
+  id: string;
+  version_number: number;
+  text: string;
+  created_by: string;
+  created_at: string;
+}
+
+interface UserLite { id: string; name?: string; username?: string; email?: string; }
 
 export default function PostDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -23,6 +37,7 @@ export default function PostDetailPage() {
 
   const [post, setPost] = useState<PostItem | null>(null);
   const [brands, setBrands] = useState<BrandPublic[]>([]);
+  const [users, setUsers] = useState<UserLite[]>([]);
   const [loading, setLoading] = useState(true);
   const [editText, setEditText] = useState("");
   const [editing, setEditing] = useState(false);
@@ -33,12 +48,20 @@ export default function PostDetailPage() {
   const [schedTime, setSchedTime] = useState("09:00");
   const [scheduling, setScheduling] = useState(false);
   const [schedError, setSchedError] = useState("");
-  const [versions, setVersions] = useState<Array<{ id: string; version_number: number; text: string; created_by: string; created_at: string }>>([]);
+  const [versions, setVersions] = useState<VersionRow[]>([]);
   const [showVersions, setShowVersions] = useState(false);
   const [loadingVersions, setLoadingVersions] = useState(false);
   const [rollingBack, setRollingBack] = useState<number | null>(null);
+  const [expandedVersion, setExpandedVersion] = useState<string | null>(null);
+  const [cancelGuardOpen, setCancelGuardOpen] = useState(false);
 
-  const getBrandName = (id: string) => brands.find((b) => b.id === id)?.name ?? id;
+  const getBrandName = (idArg: string) => brands.find((b) => b.id === idArg)?.name ?? idArg;
+  const getUserName = (uid: string) =>
+    users.find((u) => u.id === uid)?.name
+    ?? users.find((u) => u.id === uid)?.username
+    ?? "Unknown";
+
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "local";
 
   const handleToggleVersions = async () => {
     if (showVersions) { setShowVersions(false); return; }
@@ -76,6 +99,8 @@ export default function PostDetailPage() {
       .then((res) => {
         setPost(res.data);
         setEditText(res.data.text);
+        const preview = res.data.text.slice(0, 40).trim();
+        document.title = preview ? `${preview}… · Posts` : "Post · COP Platform";
       })
       .catch(() => toast.error("Post not found"))
       .finally(() => setLoading(false));
@@ -86,13 +111,20 @@ export default function PostDetailPage() {
       const data = res.data?.brands || res.data || [];
       setBrands(data);
     }).catch(() => {});
+    getUsers().then((res) => setUsers(res.data || [])).catch(() => {});
   }, []);
 
   const isAdmin = user?.role === "admin" || user?.role === "super_admin";
   const isSuperAdmin = user?.role === "super_admin";
-  const canEdit = post && (post.status === "draft" || post.status === "rejected");
+  const canEdit = post && (
+    post.status === "draft"
+    || post.status === "rejected"
+    || (isAdmin && post.status === "pending")
+  );
   const canApprove = isAdmin && post && (post.status === "pending" || (isSuperAdmin && post.status !== "approved"));
   const canReject = isAdmin && post && (post.status === "pending" || (isSuperAdmin && post.status !== "rejected"));
+  const platformLimit = post ? getPlatformLimit(post.platform) : 3000;
+  const hasUnsavedEdits = editing && post && editText !== post.text;
 
   const handleSaveEdit = async () => {
     if (!post) return;
@@ -107,6 +139,17 @@ export default function PostDetailPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const cancelEdit = () => {
+    setEditing(false);
+    if (post) setEditText(post.text);
+    setCancelGuardOpen(false);
+  };
+
+  const handleCancelClick = () => {
+    if (hasUnsavedEdits) setCancelGuardOpen(true);
+    else cancelEdit();
   };
 
   const handleSubmit = async () => {
@@ -131,7 +174,7 @@ export default function PostDetailPage() {
       setPost(res.data);
       toast.success("Post moved back to draft");
     } catch {
-      toast.error("Failed to unsubmit post");
+      toast.error("Failed to retract post");
     } finally {
       setActioning(false);
     }
@@ -216,11 +259,11 @@ export default function PostDetailPage() {
           <Skeleton className="h-6 w-20 rounded-full" />
         </div>
         <Card className="mb-4">
-          <Skeleton className="h-4 w-24 mb-3" />
-          <Skeleton className="h-4 w-full mb-2" />
-          <Skeleton className="h-4 w-5/6 mb-2" />
-          <Skeleton className="h-4 w-4/5 mb-2" />
-          <Skeleton className="h-4 w-3/4" />
+          <Skeleton className="h-5 w-24 mb-3" />
+          <Skeleton className="h-32 w-full rounded-md" />
+        </Card>
+        <Card className="mb-4">
+          <Skeleton className="h-16 w-full" />
         </Card>
       </div>
     );
@@ -239,7 +282,7 @@ export default function PostDetailPage() {
         subtitle={`${post.platform} · ${new Date(post.created_at).toLocaleDateString()}`}
         action={
           <Button variant="ghost" onClick={() => router.back()}>
-            ← Back
+            <ArrowLeft size={16} /> Back
           </Button>
         }
       />
@@ -253,7 +296,7 @@ export default function PostDetailPage() {
 
       {/* Rejection banner */}
       {post.status === "rejected" && post.rejection_reason && (
-        <div className="mb-4 rounded-lg border border-error/30 bg-red-50 dark:bg-red-950/20 px-4 py-3 text-sm text-error">
+        <div className="mb-4 rounded-lg border border-error/30 bg-error/10 px-4 py-3 text-sm text-error">
           <span className="font-semibold">Rejected: </span>{post.rejection_reason}
         </div>
       )}
@@ -261,9 +304,9 @@ export default function PostDetailPage() {
       {/* Post text — view or edit */}
       <Card className="mb-4">
         <div className="flex justify-between items-center mb-3">
-          <h3 className="text-sm font-bold text-text-primary">Post Text</h3>
+          <h3 className="text-base font-bold text-text-primary">Post Text</h3>
           {canEdit && !editing && (
-            <Button variant="ghost" className="text-xs" onClick={() => setEditing(true)}>
+            <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
               Edit
             </Button>
           )}
@@ -275,15 +318,15 @@ export default function PostDetailPage() {
               value={editText}
               onChange={(e) => setEditText(e.target.value)}
             />
+            <div className="mt-2 flex items-center justify-between">
+              <CharacterCounter current={editText.length} max={platformLimit} />
+              {hasUnsavedEdits && <span className="text-xs text-warning">Unsaved changes</span>}
+            </div>
             <div className="mt-3 flex gap-2">
-              <Button onClick={handleSaveEdit} disabled={saving} className="text-xs">
-                {saving ? "Saving..." : "Save Changes"}
+              <Button size="sm" onClick={handleSaveEdit} disabled={saving || editText.length > platformLimit}>
+                {saving ? "Saving…" : "Save Changes"}
               </Button>
-              <Button
-                variant="ghost"
-                className="text-xs"
-                onClick={() => { setEditing(false); setEditText(post.text); }}
-              >
+              <Button variant="ghost" size="sm" onClick={handleCancelClick}>
                 Cancel
               </Button>
             </div>
@@ -295,7 +338,7 @@ export default function PostDetailPage() {
         )}
       </Card>
 
-      {/* Un-submit action — user can retract a pending post before admin reviews */}
+      {/* Retract (user-owned pending) */}
       {post.status === "pending" && post.created_by === user?.sub && (
         <Card className="mb-4">
           <div className="flex items-center justify-between">
@@ -303,8 +346,8 @@ export default function PostDetailPage() {
               <p className="text-sm font-semibold text-text-primary mb-1">Waiting for review</p>
               <p className="text-xs text-text-muted">You can retract this post if you need to make changes.</p>
             </div>
-            <Button variant="ghost" className="text-xs text-text-muted border border-border" onClick={handleUnsubmit} disabled={actioning}>
-              {actioning ? "Processing..." : "Un-submit"}
+            <Button variant="ghost" size="sm" className="text-text-muted border border-border" onClick={handleUnsubmit} disabled={actioning}>
+              {actioning ? "Processing…" : "Retract"}
             </Button>
           </div>
         </Card>
@@ -319,7 +362,7 @@ export default function PostDetailPage() {
               <p className="text-xs text-text-muted">Send this post for admin review.</p>
             </div>
             <Button onClick={handleSubmit} disabled={actioning}>
-              {actioning ? "Submitting..." : "Submit for Approval"}
+              {actioning ? "Submitting…" : "Submit for Approval"}
             </Button>
           </div>
         </Card>
@@ -332,6 +375,7 @@ export default function PostDetailPage() {
             <div>
               <p className="text-sm font-semibold text-text-primary mb-1">Schedule this post</p>
               <p className="text-xs text-text-muted">Pick a date and time to put it on the calendar.</p>
+              <p className="text-xs text-text-muted mt-1">Timezone: <span className="font-mono">{tz}</span></p>
             </div>
             <div className="flex flex-col items-end gap-1">
               <div className="flex items-center gap-2 flex-wrap">
@@ -349,7 +393,7 @@ export default function PostDetailPage() {
                   className={`rounded-md border bg-elevated px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary ${schedError ? "border-error" : "border-border"}`}
                 />
                 <Button onClick={handleSchedule} disabled={scheduling || !schedDate}>
-                  {scheduling ? "Scheduling..." : "Schedule"}
+                  {scheduling ? "Scheduling…" : "Schedule"}
                 </Button>
               </div>
               {schedError && (
@@ -370,11 +414,13 @@ export default function PostDetailPage() {
                 {new Date(post.scheduled_at).toLocaleDateString(undefined, {
                   weekday: "long", year: "numeric", month: "long", day: "numeric",
                 })} at {new Date(post.scheduled_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                <span className="ml-1 opacity-60">({tz})</span>
               </p>
             </div>
             <Button
               variant="ghost"
-              className="text-xs text-error hover:text-error border border-error/30 hover:border-error/50"
+              size="sm"
+              className="text-error hover:text-error border border-error/30 hover:border-error/50"
               onClick={handleUnscheduleFromDetail}
               disabled={scheduling}
             >
@@ -384,10 +430,10 @@ export default function PostDetailPage() {
         </Card>
       )}
 
-      {/* Admin approve / reject */}
+      {/* Admin approve / reject — approve is primary, reject is subordinate */}
       {(canApprove || canReject) && (
         <Card>
-          <h3 className="text-sm font-bold text-text-primary mb-4">Admin Actions</h3>
+          <h3 className="text-base font-bold text-text-primary mb-4">Admin Actions</h3>
           {canApprove && (
             <div className="flex items-center justify-between mb-4">
               <div>
@@ -395,13 +441,14 @@ export default function PostDetailPage() {
                 <p className="text-xs text-text-muted">Move to approved — ready to schedule.</p>
               </div>
               <Button onClick={handleApprove} disabled={actioning}>
-                {actioning ? "Processing..." : "Approve"}
+                {actioning ? "Processing…" : "Approve"}
               </Button>
             </div>
           )}
           {canReject && (
-            <div>
-              <p className="text-sm font-semibold text-text-primary mb-2">Reject post</p>
+            <div className="border-t border-border pt-4 mt-2">
+              <p className="text-sm font-semibold text-text-primary mb-1">Reject post</p>
+              <p className="text-xs text-text-muted mb-2">Send this back to the author with a reason.</p>
               <textarea
                 className="w-full rounded-md border border-border bg-elevated px-3 py-2 text-sm text-text-primary resize-none focus:outline-none focus:border-primary mb-2"
                 rows={3}
@@ -411,11 +458,12 @@ export default function PostDetailPage() {
               />
               <Button
                 variant="ghost"
-                className="text-xs text-error hover:text-error border border-error/30 hover:border-error/50"
+                size="sm"
+                className="text-error hover:text-error border border-error/30 hover:border-error/50"
                 onClick={handleReject}
                 disabled={actioning || !rejectReason.trim()}
               >
-                {actioning ? "Processing..." : "Reject"}
+                {actioning ? "Processing…" : "Reject"}
               </Button>
             </div>
           )}
@@ -425,7 +473,7 @@ export default function PostDetailPage() {
       {/* Campaign metadata */}
       {(post.campaign_goal || post.audience || post.content_format || post.growth_angle) && (
         <Card className="mt-4">
-          <h3 className="text-sm font-bold text-text-primary mb-3">Campaign Details</h3>
+          <h3 className="text-base font-bold text-text-primary mb-3">Campaign Details</h3>
           <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
             {post.campaign_goal && (
               <>
@@ -458,45 +506,70 @@ export default function PostDetailPage() {
       {/* Version history */}
       <Card className="mt-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-text-primary">Version History</h3>
-          <Button variant="ghost" className="text-xs" onClick={handleToggleVersions}>
+          <h3 className="text-base font-bold text-text-primary">Version History</h3>
+          <Button variant="ghost" size="sm" onClick={handleToggleVersions}>
             {showVersions ? "Hide" : "Show history"}
           </Button>
         </div>
         {showVersions && (
           <div className="mt-3 space-y-3">
             {loadingVersions ? (
-              <p className="text-xs text-text-muted">Loading...</p>
+              <p className="text-xs text-text-muted">Loading…</p>
             ) : versions.length === 0 ? (
               <p className="text-xs text-text-muted">No previous versions — edit the post to create one.</p>
             ) : (
-              versions.map((v) => (
-                <div key={v.id} className="rounded-md border border-border bg-elevated p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold text-text-primary">Version {v.version_number}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-text-muted">
-                        {new Date(v.created_at).toLocaleDateString()} {new Date(v.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                      </span>
-                      {(post.status === "draft" || post.status === "rejected") && (
-                        <Button
-                          variant="ghost"
-                          className="text-xs h-6 px-2"
-                          onClick={() => handleRollback(v.version_number)}
-                          disabled={rollingBack === v.version_number}
-                        >
-                          {rollingBack === v.version_number ? "Restoring..." : "Restore"}
-                        </Button>
-                      )}
+              versions.map((v) => {
+                const expanded = expandedVersion === v.id;
+                return (
+                  <div key={v.id} className="rounded-md border border-border bg-elevated p-3">
+                    <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-semibold text-text-primary">Version {v.version_number}</span>
+                        <span className="text-xs text-text-muted">by {getUserName(v.created_by)}</span>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs text-text-muted">
+                          {new Date(v.created_at).toLocaleDateString()} {new Date(v.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                        {canEdit && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRollback(v.version_number)}
+                            disabled={rollingBack === v.version_number}
+                          >
+                            {rollingBack === v.version_number ? "Restoring…" : "Restore"}
+                          </Button>
+                        )}
+                      </div>
                     </div>
+                    <p className={`text-xs text-text-secondary whitespace-pre-wrap ${expanded ? "" : "line-clamp-3"}`}>{v.text}</p>
+                    {v.text.length > 200 && (
+                      <button
+                        onClick={() => setExpandedVersion(expanded ? null : v.id)}
+                        className="mt-1 text-xs text-text-muted hover:text-text-active flex items-center gap-1 cursor-pointer"
+                      >
+                        {expanded ? <><ChevronUp size={12} /> Show less</> : <><ChevronDown size={12} /> Show full</>}
+                      </button>
+                    )}
                   </div>
-                  <p className="text-xs text-text-secondary line-clamp-3 whitespace-pre-wrap">{v.text}</p>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         )}
       </Card>
+
+      <ConfirmModal
+        open={cancelGuardOpen}
+        title="Discard your changes?"
+        description="You have unsaved edits. Cancel will discard them — this can't be undone."
+        confirmLabel="Discard"
+        cancelLabel="Keep editing"
+        destructive
+        onConfirm={cancelEdit}
+        onCancel={() => setCancelGuardOpen(false)}
+      />
     </div>
   );
 }

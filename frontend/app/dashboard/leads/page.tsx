@@ -1,23 +1,28 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import ContactSlideOver from "@/components/domain/ContactSlideOver";
 import { ContactItem, ContactStatus, getContacts } from "@/lib/contacts-api";
 import { getBrands } from "@/lib/api";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ChevronDown, Search, Users } from "lucide-react";
 
 interface Brand { id: string; name: string }
 
 const STATUS_OPTIONS: ContactStatus[] = ["lead","contacted","replied","meeting","won","lost","client"];
 
 const STATUS_STYLE: Record<ContactStatus, string> = {
-  lead:      "text-text-muted bg-surface border border-border",
+  lead:      "text-text-muted bg-elevated border border-border",
   contacted: "text-primary bg-primary/10",
-  replied:   "text-warning bg-amber-500/10",
-  meeting:   "text-info bg-blue-500/10",
-  won:       "text-success bg-green-500/10",
-  lost:      "text-error bg-red-500/10",
-  client:    "text-success font-bold bg-green-500/10",
+  replied:   "text-warning bg-warning/10",
+  meeting:   "text-info bg-info/10",
+  won:       "text-success bg-success/10",
+  lost:      "text-error bg-error/10",
+  client:    "text-success font-bold bg-success/10",
 };
 
 export default function LeadsPage() {
@@ -25,14 +30,25 @@ export default function LeadsPage() {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [filterStatus, setFilterStatus] = useState<ContactStatus | "all">("all");
   const [filterBrand, setFilterBrand] = useState("");
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
   const [slideOver, setSlideOver] = useState<{ contactId: string | null; mode: "view" | "create" } | null>(null);
 
+  useEffect(() => { document.title = "Leads · COP Platform"; }, []);
+
   async function load() {
-    const params: Record<string, string> = {};
-    if (filterStatus !== "all") params.status = filterStatus;
-    if (filterBrand) params.brand_id = filterBrand;
-    const r = await getContacts(params);
-    setContacts(r.data ?? []);
+    setLoading(true);
+    try {
+      const params: Record<string, string> = {};
+      if (filterStatus !== "all") params.status = filterStatus;
+      if (filterBrand) params.brand_id = filterBrand;
+      const r = await getContacts(params);
+      setContacts(r.data ?? []);
+    } catch {
+      toast.error("Failed to load contacts");
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => { load(); }, [filterStatus, filterBrand]);
@@ -43,46 +59,107 @@ export default function LeadsPage() {
     return brands.find(b => b.id === id)?.name ?? "—";
   }
 
-  return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-text">Leads</h1>
-          <p className="text-sm text-text-muted mt-1">Track and manage your prospects</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <select value={filterBrand} onChange={e => setFilterBrand(e.target.value)} className="appearance-none bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text pr-7">
-              <option value="">All brands</option>
-              {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
-            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-muted text-xs">&#9660;</span>
-          </div>
-          <Link href="/dashboard/leads/discover" className="bg-surface border border-border text-text-muted px-4 py-2 rounded-lg text-sm font-medium hover:border-primary hover:text-text transition-colors">
-            Find Leads
-          </Link>
-          <button onClick={() => setSlideOver({ contactId: null, mode: "create" })} className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
-            Add Contact
-          </button>
-        </div>
-      </div>
+  const filtered = useMemo(() => {
+    if (!search.trim()) return contacts;
+    const q = search.trim().toLowerCase();
+    return contacts.filter(c =>
+      c.name.toLowerCase().includes(q) ||
+      (c.company ?? "").toLowerCase().includes(q) ||
+      (c.role ?? "").toLowerCase().includes(q) ||
+      (c.email ?? "").toLowerCase().includes(q)
+    );
+  }, [contacts, search]);
 
-      {/* Status filter pills */}
-      <div className="flex flex-wrap gap-2">
-        <button onClick={() => setFilterStatus("all")} className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${filterStatus === "all" ? "bg-primary text-white" : "bg-surface text-text-muted border border-border hover:border-primary"}`}>
-          All
-        </button>
-        {STATUS_OPTIONS.map(s => (
-          <button key={s} onClick={() => setFilterStatus(s)} className={`px-3 py-1 rounded-full text-sm font-medium transition-colors capitalize ${filterStatus === s ? "bg-primary text-white" : "bg-surface text-text-muted border border-border hover:border-primary"}`}>
-            {s}
-          </button>
-        ))}
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Leads"
+        subtitle="Track and manage your prospects"
+        action={
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="relative">
+              <select
+                value={filterBrand}
+                onChange={e => setFilterBrand(e.target.value)}
+                className="appearance-none bg-surface border border-border rounded-lg px-3 py-2 pr-8 text-sm text-text-primary focus:outline-none focus:border-primary cursor-pointer"
+              >
+                <option value="">All brands</option>
+                {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
+              <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
+            </div>
+            <Link href="/dashboard/leads/discover">
+              <Button variant="ghost">Find Leads</Button>
+            </Link>
+            <Button onClick={() => setSlideOver({ contactId: null, mode: "create" })}>
+              Add Contact
+            </Button>
+          </div>
+        }
+      />
+
+      {/* Search + status filter */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name, company, role…"
+            className="pl-9"
+          />
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setFilterStatus("all")}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold capitalize transition-colors cursor-pointer border ${
+              filterStatus === "all"
+                ? "border-primary bg-primary-muted text-text-active"
+                : "border-border bg-surface text-text-muted hover:border-elevated hover:text-text-secondary"
+            }`}
+          >All</button>
+          {STATUS_OPTIONS.map(s => (
+            <button
+              key={s}
+              onClick={() => setFilterStatus(s)}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold capitalize transition-colors cursor-pointer border ${
+                filterStatus === s
+                  ? "border-primary bg-primary-muted text-text-active"
+                  : "border-border bg-surface text-text-muted hover:border-elevated hover:text-text-secondary"
+              }`}
+            >{s}</button>
+          ))}
+        </div>
       </div>
 
       {/* Table */}
       <div className="bg-surface rounded-xl border border-border overflow-hidden">
-        {contacts.length === 0 ? (
-          <div className="p-12 text-center text-text-muted text-sm">No contacts found.</div>
+        {loading ? (
+          <div className="divide-y divide-border">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="px-4 py-3 flex items-center gap-4">
+                <Skeleton className="h-4 flex-1 max-w-[160px]" />
+                <Skeleton className="h-4 flex-1 max-w-[120px]" />
+                <Skeleton className="h-4 flex-1 max-w-[100px]" />
+                <Skeleton className="h-5 w-20 rounded-full" />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-20" />
+              </div>
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="p-12 text-center">
+            <Users size={32} className="mx-auto mb-3 text-text-muted opacity-50" />
+            <p className="text-sm text-text-muted">
+              {contacts.length === 0 ? "No contacts yet." : "No contacts match your filters."}
+            </p>
+            {contacts.length === 0 && (
+              <Link href="/dashboard/leads/discover" className="inline-block mt-4">
+                <Button>Find your first leads</Button>
+              </Link>
+            )}
+          </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
@@ -96,9 +173,13 @@ export default function LeadsPage() {
               </tr>
             </thead>
             <tbody>
-              {contacts.map(c => (
-                <tr key={c.id} onClick={() => setSlideOver({ contactId: c.id, mode: "view" })} className="border-b border-border last:border-0 hover:bg-background transition-colors cursor-pointer">
-                  <td className="px-4 py-3 font-medium text-text">{c.name}</td>
+              {filtered.map(c => (
+                <tr
+                  key={c.id}
+                  onClick={() => setSlideOver({ contactId: c.id, mode: "view" })}
+                  className="border-b border-border last:border-0 hover:bg-elevated transition-colors cursor-pointer"
+                >
+                  <td className="px-4 py-3 font-medium text-text-primary">{c.name}</td>
                   <td className="px-4 py-3 text-text-muted">{c.company ?? "—"}</td>
                   <td className="px-4 py-3 text-text-muted">{c.role ?? "—"}</td>
                   <td className="px-4 py-3">

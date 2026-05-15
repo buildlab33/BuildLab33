@@ -1,5 +1,5 @@
 "use client";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { ExternalLink } from "lucide-react";
 import { NewsArticle } from "@/lib/news-api";
 
@@ -10,6 +10,12 @@ interface Props {
 
 export default function NewsSlideOver({ article, onClose }: Props) {
   const backdropRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   function handleBackdropMouseDown(e: React.MouseEvent) {
     if (e.target === backdropRef.current) onClose();
@@ -39,11 +45,11 @@ export default function NewsSlideOver({ article, onClose }: Props) {
               <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">{article.source}</span>
               {formattedDate && <span className="text-xs text-text-muted">{formattedDate}</span>}
             </div>
-            <h2 className="text-lg font-bold text-text leading-snug">{article.title}</h2>
+            <h2 className="text-lg font-bold text-text-primary leading-snug">{article.title}</h2>
           </div>
           <button
             onClick={onClose}
-            className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-elevated hover:bg-border text-text-muted hover:text-text transition-colors text-lg"
+            className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-elevated hover:bg-border text-text-muted hover:text-text-primary transition-colors text-lg cursor-pointer"
           >
             &times;
           </button>

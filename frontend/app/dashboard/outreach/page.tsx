@@ -1,9 +1,13 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
 import ContactSlideOver from "@/components/domain/ContactSlideOver";
 import { ActivityChannel, ActivityItem, ContactItem, getContacts, logActivity } from "@/lib/contacts-api";
 import { getBrands } from "@/lib/api";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ChevronDown, X, Send } from "lucide-react";
 
 interface Brand { id: string; name: string }
 interface FlatActivity extends ActivityItem {
@@ -12,10 +16,10 @@ interface FlatActivity extends ActivityItem {
 
 const CHANNEL_STYLE: Record<ActivityChannel, string> = {
   linkedin: "bg-primary/15 text-primary",
-  email:    "bg-blue-500/15 text-blue-400",
-  call:     "bg-amber-500/15 text-amber-400",
-  meeting:  "bg-green-500/15 text-green-400",
-  other:    "bg-surface text-text-muted",
+  email:    "bg-info/15 text-info",
+  call:     "bg-warning/15 text-warning",
+  meeting:  "bg-success/15 text-success",
+  other:    "bg-elevated text-text-muted",
 };
 const CHANNEL_OPTIONS: ActivityChannel[] = ["linkedin","email","call","meeting","other"];
 
@@ -23,6 +27,7 @@ export default function OutreachPage() {
   const [contacts, setContacts] = useState<ContactItem[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [filterBrand, setFilterBrand] = useState("");
+  const [loading, setLoading] = useState(true);
   const [viewContactId, setViewContactId] = useState<string | null>(null);
   const [logModal, setLogModal] = useState(false);
   const [logStep, setLogStep] = useState<1 | 2>(1);
@@ -33,19 +38,32 @@ export default function OutreachPage() {
   const [logNotes, setLogNotes] = useState("");
   const [logSaving, setLogSaving] = useState(false);
 
+  useEffect(() => { document.title = "Outreach · COP Platform"; }, []);
+
   async function load() {
-    const params: Record<string, string | boolean> = { include_activities: true };
-    if (filterBrand) params.brand_id = filterBrand;
+    setLoading(true);
     try {
+      const params: Record<string, string | boolean> = { include_activities: true };
+      if (filterBrand) params.brand_id = filterBrand;
       const r = await getContacts(params as Parameters<typeof getContacts>[0]);
       setContacts(r.data ?? []);
     } catch {
       toast.error("Failed to load contacts");
+    } finally {
+      setLoading(false);
     }
   }
 
   useEffect(() => { load(); }, [filterBrand]);
   useEffect(() => { getBrands().then(r => setBrands(r.data?.brands || [])).catch(() => toast.error("Failed to load brands")); }, []);
+
+  // ESC to close log modal
+  useEffect(() => {
+    if (!logModal) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setLogModal(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [logModal]);
 
   const activities: FlatActivity[] = contacts
     .flatMap(c => (c.activities ?? []).map(a => ({ ...a, contact: c })))
@@ -75,29 +93,45 @@ export default function OutreachPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-text">Outreach</h1>
-          <p className="text-sm text-text-muted mt-1">Activity log across all contacts</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <select value={filterBrand} onChange={e => setFilterBrand(e.target.value)} className="appearance-none bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text pr-7">
-              <option value="">All brands</option>
-              {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
-            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-muted text-xs">&#9660;</span>
+    <div className="space-y-6">
+      <PageHeader
+        title="Outreach"
+        subtitle="Activity log across all contacts"
+        action={
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="relative">
+              <select
+                value={filterBrand}
+                onChange={e => setFilterBrand(e.target.value)}
+                className="appearance-none bg-surface border border-border rounded-lg px-3 py-2 pr-8 text-sm text-text-primary focus:outline-none focus:border-primary cursor-pointer"
+              >
+                <option value="">All brands</option>
+                {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
+              <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
+            </div>
+            <Button onClick={openLogModal}>Log Activity</Button>
           </div>
-          <button onClick={openLogModal} className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
-            Log Activity
-          </button>
-        </div>
-      </div>
+        }
+      />
 
-      {activities.length === 0 ? (
-        <div className="bg-surface rounded-xl border border-border p-12 text-center text-text-muted text-sm">
-          No activities logged yet.
+      {loading ? (
+        <div className="bg-surface rounded-xl border border-border overflow-hidden divide-y divide-border">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="px-4 py-3 flex items-center gap-4">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-5 w-20 rounded-full" />
+              <Skeleton className="h-4 flex-1 max-w-[140px]" />
+              <Skeleton className="h-4 flex-1 max-w-[120px]" />
+              <Skeleton className="h-4 flex-1 max-w-[200px]" />
+            </div>
+          ))}
+        </div>
+      ) : activities.length === 0 ? (
+        <div className="bg-surface rounded-xl border border-border p-12 text-center">
+          <Send size={32} className="mx-auto mb-3 text-text-muted opacity-50" />
+          <p className="text-sm text-text-muted">No activities logged yet.</p>
+          <Button className="mt-4" onClick={openLogModal}>Log your first activity</Button>
         </div>
       ) : (
         <div className="bg-surface rounded-xl border border-border overflow-hidden">
@@ -113,12 +147,16 @@ export default function OutreachPage() {
             </thead>
             <tbody>
               {activities.map(a => (
-                <tr key={a.id} onClick={() => setViewContactId(a.contact.id)} className="border-b border-border last:border-0 hover:bg-background transition-colors cursor-pointer">
-                  <td className="px-4 py-3 text-text-muted whitespace-nowrap">{a.activity_date}</td>
+                <tr
+                  key={a.id}
+                  onClick={() => setViewContactId(a.contact.id)}
+                  className="border-b border-border last:border-0 hover:bg-elevated transition-colors cursor-pointer"
+                >
+                  <td className="px-4 py-3 text-text-muted whitespace-nowrap tabular-nums">{a.activity_date}</td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${CHANNEL_STYLE[a.channel as ActivityChannel]}`}>{a.channel}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${CHANNEL_STYLE[a.channel as ActivityChannel]}`}>{a.channel}</span>
                   </td>
-                  <td className="px-4 py-3 font-medium text-text">{a.contact.name}</td>
+                  <td className="px-4 py-3 font-medium text-text-primary">{a.contact.name}</td>
                   <td className="px-4 py-3 text-text-muted">{a.contact.company ?? "—"}</td>
                   <td className="px-4 py-3 text-text-muted max-w-xs truncate">{a.notes.length > 80 ? a.notes.slice(0, 80) + "…" : a.notes}</td>
                 </tr>
@@ -129,59 +167,85 @@ export default function OutreachPage() {
       )}
 
       {logModal && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center" onMouseDown={e => { if (e.target === e.currentTarget) setLogModal(false); }}>
-          <div className="bg-background rounded-xl border border-border w-full max-w-md p-6 space-y-4 shadow-xl">
+        <div
+          className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
+          onMouseDown={e => { if (e.target === e.currentTarget) setLogModal(false); }}
+        >
+          <div className="bg-surface rounded-xl border border-border w-full max-w-md p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-text">{logStep === 1 ? "Select Contact" : "Log Activity"}</h2>
-              <button onClick={() => setLogModal(false)} className="text-text-muted hover:text-text text-xl leading-none">&times;</button>
+              <h2 className="text-base font-bold text-text-primary">{logStep === 1 ? "Select Contact" : "Log Activity"}</h2>
+              <button
+                onClick={() => setLogModal(false)}
+                aria-label="Close"
+                className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-elevated text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+              ><X size={15} /></button>
             </div>
             {logStep === 1 ? (
               <>
                 <div className="space-y-1">
-                  <label className="text-xs text-text-muted uppercase tracking-wide">Contact</label>
+                  <label className="text-xs font-medium text-text-muted uppercase tracking-wide">Contact</label>
                   <div className="relative">
-                    <select value={logContactId} onChange={e => setLogContactId(e.target.value)} className="w-full appearance-none bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text pr-7">
+                    <select
+                      value={logContactId}
+                      onChange={e => setLogContactId(e.target.value)}
+                      className="w-full appearance-none bg-elevated border border-border rounded-lg px-3 py-2 pr-8 text-sm text-text-primary focus:outline-none focus:border-primary cursor-pointer"
+                    >
                       <option value="">Select a contact…</option>
                       {contacts.map(c => <option key={c.id} value={c.id}>{c.name}{c.company ? ` — ${c.company}` : ""}</option>)}
                     </select>
-                    <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-muted text-xs">&#9660;</span>
+                    <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
                   </div>
                 </div>
                 {!logContactId && (
                   <p className="text-xs text-text-muted -mt-1">Select a contact to continue</p>
                 )}
-                <button onClick={() => logContactId && setLogStep(2)} disabled={!logContactId} className="w-full bg-primary text-white rounded-lg py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors">
+                <Button onClick={() => logContactId && setLogStep(2)} disabled={!logContactId} className="w-full">
                   Next
-                </button>
+                </Button>
               </>
             ) : (
               <>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <label className="text-xs text-text-muted uppercase tracking-wide">Date</label>
-                    <input type="date" value={logDate} onChange={e => setLogDate(e.target.value)} className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text" />
+                    <label className="text-xs font-medium text-text-muted uppercase tracking-wide">Date</label>
+                    <input
+                      type="date"
+                      value={logDate}
+                      onChange={e => setLogDate(e.target.value)}
+                      className="w-full bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary"
+                    />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs text-text-muted uppercase tracking-wide">Channel</label>
+                    <label className="text-xs font-medium text-text-muted uppercase tracking-wide">Channel</label>
                     <div className="relative">
-                      <select value={logChannel} onChange={e => setLogChannel(e.target.value as ActivityChannel)} className="w-full appearance-none bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text pr-7">
+                      <select
+                        value={logChannel}
+                        onChange={e => setLogChannel(e.target.value as ActivityChannel)}
+                        className="w-full appearance-none bg-elevated border border-border rounded-lg px-3 py-2 pr-8 text-sm text-text-primary focus:outline-none focus:border-primary cursor-pointer"
+                      >
                         {CHANNEL_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
-                      <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-muted text-xs">&#9660;</span>
+                      <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
                     </div>
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs text-text-muted uppercase tracking-wide">Notes</label>
-                  <textarea value={logNotes} onChange={e => setLogNotes(e.target.value)} rows={3} placeholder="What happened?" className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text resize-none" />
+                  <label className="text-xs font-medium text-text-muted uppercase tracking-wide">Notes</label>
+                  <textarea
+                    value={logNotes}
+                    onChange={e => setLogNotes(e.target.value)}
+                    rows={3}
+                    placeholder="What happened?"
+                    className="w-full bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-text-primary resize-none focus:outline-none focus:border-primary"
+                  />
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => setLogStep(1)} className="flex-1 bg-surface border border-border text-text rounded-lg py-2 text-sm font-medium hover:bg-background transition-colors">
+                  <Button variant="ghost" onClick={() => setLogStep(1)} className="flex-1">
                     Back
-                  </button>
-                  <button onClick={submitLog} disabled={logSaving || !logNotes.trim()} className="flex-1 bg-primary text-white rounded-lg py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors">
-                    {logSaving ? "Saving..." : "Log Activity"}
-                  </button>
+                  </Button>
+                  <Button onClick={submitLog} disabled={logSaving || !logNotes.trim()} className="flex-1">
+                    {logSaving ? "Saving…" : "Log Activity"}
+                  </Button>
                 </div>
               </>
             )}

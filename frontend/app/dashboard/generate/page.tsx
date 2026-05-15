@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getBrands, generatePost, createPost, TrendHeadline } from "@/lib/api";
 import { TrendAnchorPicker } from "@/components/domain/TrendAnchorPicker";
@@ -13,6 +13,8 @@ import { PlatformPill } from "@/components/domain/PlatformPill";
 import { CharacterCounter } from "@/components/domain/CharacterCounter";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "@/components/ui/toast";
+import { Sparkles, ChevronDown, Loader2, Check, Copy as CopyIcon, RefreshCw } from "lucide-react";
+import { getPlatformLimit } from "@/lib/platformLimits";
 
 interface Brand { id: string; name: string; }
 
@@ -24,11 +26,6 @@ const PLATFORMS = [
   { id: "x", label: "X (Twitter)" },
   { id: "youtube", label: "YouTube" },
 ];
-
-const PLATFORM_LIMITS: Record<string, number> = {
-  linkedin: 3000, instagram: 2200, tiktok: 2200,
-  facebook: 63206, x: 280, youtube: 5000,
-};
 
 function GenerateForm() {
   const searchParams = useSearchParams();
@@ -46,6 +43,9 @@ function GenerateForm() {
   const [copied, setCopied] = useState(false);
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  const resultRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { document.title = "Generate · COP Platform"; }, []);
 
   useEffect(() => {
     getBrands().then((res) => {
@@ -76,6 +76,7 @@ function GenerateForm() {
     try {
       const res = await generatePost(params);
       setResult({ ...res.data, brand_id: params.brand_id });
+      setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
       setError(msg || "Generation failed. Please try again.");
@@ -122,7 +123,7 @@ function GenerateForm() {
 
   const selectedBrand = brands.find((b) => b.id === brandId);
   const resultCharCount = result?.text.length ?? 0;
-  const platformLimit = PLATFORM_LIMITS[platform] ?? 3000;
+  const platformLimit = getPlatformLimit(platform);
 
   return (
     <div>
@@ -136,18 +137,20 @@ function GenerateForm() {
           <form onSubmit={handleGenerate}>
             <div className="mb-4">
               <Label htmlFor="brand-select">Brand</Label>
-              <select
-                id="brand-select"
-                className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2 pr-8 text-sm text-text-primary outline-none focus:border-primary focus:ring-1 focus:ring-primary appearance-none"
-                style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center" }}
-                value={brandId}
-                onChange={(e) => { setBrandId(e.target.value); setTrendAnchor(null); }}
-                required
-              >
-                {brands.map((b) => (
-                  <option key={b.id} value={b.id}>{b.name}</option>
-                ))}
-              </select>
+              <div className="relative mt-1">
+                <select
+                  id="brand-select"
+                  className="w-full appearance-none rounded-md border border-border bg-surface px-3 py-2 pr-9 text-sm text-text-primary outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                  value={brandId}
+                  onChange={(e) => { setBrandId(e.target.value); setTrendAnchor(null); }}
+                  required
+                >
+                  {brands.map((b) => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
+                <ChevronDown size={16} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
+              </div>
             </div>
 
             <div className="mb-4">
@@ -220,30 +223,37 @@ function GenerateForm() {
             />
 
             <Button type="submit" disabled={loading} className="w-full">
-              {loading ? "Generating..." : `✦ Generate for ${selectedBrand?.name || "Brand"}`}
+              {loading ? (
+                <><Loader2 size={16} className="animate-spin" /> Generating…</>
+              ) : (
+                <><Sparkles size={16} /> Generate for {selectedBrand?.name || "Brand"}</>
+              )}
             </Button>
           </form>
         </Card>
 
-        <Card className="relative">
+        <Card className="relative" ref={resultRef}>
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-sm font-bold text-text-primary">Generated Post</h3>
+            <h3 className="text-base font-bold text-text-primary">Generated Post</h3>
             {result && (
-              <Button variant="ghost" onClick={handleCopy} className="text-xs px-3 py-1.5 h-auto">
-                {copied ? "✓ Copied" : "Copy"}
+              <Button variant="ghost" size="sm" onClick={handleCopy}>
+                {copied ? <><Check size={14} /> Copied</> : <><CopyIcon size={14} /> Copy</>}
               </Button>
             )}
           </div>
 
           {loading && (
             <div className="text-center py-16 text-text-muted">
-              <div className="text-3xl mb-3">✦</div>
-              <div className="text-sm">Generating with AI...</div>
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-4">
+                <Sparkles size={22} className="text-primary animate-pulse" />
+              </div>
+              <div className="text-sm text-text-primary font-medium mb-1">Generating with AI…</div>
+              <div className="text-xs">Crafting copy in your brand voice. This usually takes 5–15 seconds.</div>
             </div>
           )}
 
           {error && (
-            <div className="bg-red-50 text-error p-4 rounded-lg text-xs">{error}</div>
+            <div className="bg-error/10 border border-error/30 text-error p-4 rounded-lg text-sm">{error}</div>
           )}
 
           {result && !loading && (
@@ -259,17 +269,14 @@ function GenerateForm() {
                 onChange={(e) => setResult((prev) => prev ? { ...prev, text: e.target.value } : null)}
               />
               <div className="mt-4 flex gap-2 flex-wrap">
-                <Button className="text-xs" onClick={() => handleSave(true)} disabled={saving}>
-                  {saving ? "Saving..." : "Submit for Approval"}
+                <Button size="sm" onClick={() => handleSave(true)} disabled={saving}>
+                  {saving ? "Saving…" : "Submit for Approval"}
                 </Button>
-                <Button variant="ghost" className="text-xs border border-border" onClick={() => handleSave(false)} disabled={saving}>
-                  {saving ? "Saving..." : "Save as Draft"}
+                <Button variant="ghost" size="sm" onClick={() => handleSave(false)} disabled={saving}>
+                  {saving ? "Saving…" : "Save as Draft"}
                 </Button>
-                <Button variant="ghost" onClick={handleCopy} className="text-xs">
-                  {copied ? "✓ Copied" : "Copy"}
-                </Button>
-                <Button variant="ghost" className="text-xs border border-border" onClick={() => runGeneration(collectParams())}>
-                  Regenerate
+                <Button variant="ghost" size="sm" onClick={() => runGeneration(collectParams())}>
+                  <RefreshCw size={14} /> Regenerate
                 </Button>
               </div>
             </div>
@@ -277,7 +284,9 @@ function GenerateForm() {
 
           {!result && !loading && !error && (
             <div className="text-center py-16 text-text-muted">
-              <div className="text-4xl mb-3">✦</div>
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-elevated mb-4">
+                <Sparkles size={22} className="text-text-muted" />
+              </div>
               <div className="text-sm">Fill in the form and click Generate</div>
             </div>
           )}

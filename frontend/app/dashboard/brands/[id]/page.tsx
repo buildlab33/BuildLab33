@@ -98,17 +98,20 @@ export default function BrandDetailPage() {
   const handleSave = async () => {
     if (!id) return;
     setSaving(true);
+    const safeColour = /^#[0-9a-fA-F]{6}$/.test(brandColour) ? brandColour : "#6366f1";
     try {
       await updateBrand(id, {
         name,
         industry,
-        brand_colour: brandColour,
+        brand_colour: safeColour,
         default_timezone: timezone,
         content_pillars: pillars,
       });
       toast.success("Brand saved");
-    } catch {
-      toast.error("Failed to save brand");
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
+      const msg = typeof detail === "string" ? detail : JSON.stringify(detail) ?? "Failed to save brand";
+      toast.error(msg || "Failed to save brand");
     } finally {
       setSaving(false);
     }
@@ -565,7 +568,9 @@ export default function BrandDetailPage() {
           onSaved={async () => {
             try {
               const res = await getBrand(id);
-              setBrand(res.data);
+              const b = res.data;
+              setBrand(b);
+              setPillars(b.content_pillars || []);
               toast.success("Voice config saved");
             } catch {
               toast.error("Failed to refresh brand");

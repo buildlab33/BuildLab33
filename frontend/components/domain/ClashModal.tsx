@@ -58,7 +58,7 @@ export function ClashModal({ clashingPost, onKeepBoth, onReplace, onPickDifferen
               Replace Existing Post
             </Button>
           ) : (
-            <div className="border border-error/40 rounded-lg p-3 bg-red-50 dark:bg-red-950/20">
+            <div className="border border-error/40 rounded-lg p-3 bg-error/10">
               <p className="text-xs text-error mb-3">
                 This will move the existing post back to draft. It will need re-approval before it can be scheduled again. Continue?
               </p>

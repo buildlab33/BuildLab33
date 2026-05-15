@@ -25,7 +25,7 @@ interface Props {
 type WizardStep = "interview" | "source" | "review" | "generate" | "config";
 
 const PLATFORM_ORDER = ["linkedin", "instagram", "tiktok", "facebook", "x", "youtube"];
-const MAX_PASTE_CHARS = 5000;
+const MAX_PASTE_CHARS = 10000;
 
 const QUESTIONS_META = [
   { question: "What does your brand do, and who is it for?", stage: 1 },
@@ -219,7 +219,10 @@ export default function BrandVoiceWizard({ brandId, brandName, brandIndustry, on
         avoid: editAvoid,
         sample_prompts: editSamplePrompts,
       };
-      await updateBrand(brandId, { voice_config: mergedVoiceConfig });
+      await updateBrand(brandId, {
+        voice_config: mergedVoiceConfig,
+        content_pillars: editPillars,
+      });
       onSaved();
       onClose();
     } catch (err: unknown) {
@@ -777,13 +780,13 @@ function Step2Review({ editedSources, setEditedSources, hasWarnings }: Step2Prop
           </div>
           <textarea
             value={source.text}
-            onChange={(e) => updateText(i, e.target.value.slice(0, 3000))}
+            onChange={(e) => updateText(i, e.target.value.slice(0, 10000))}
             rows={source.warning ? 5 : 3}
             placeholder="Paste content here if the source returned nothing useful…"
             className="w-full rounded-lg border border-border bg-surface text-text-primary text-xs px-3 py-2 focus:outline-none focus:border-border-active resize-none placeholder:text-text-muted"
           />
-          <p className={`text-xs ${source.char_count >= 3000 ? "text-error" : "text-text-muted"}`}>
-            {source.char_count}/3000 chars
+          <p className={`text-xs ${source.char_count >= 10000 ? "text-error" : "text-text-muted"}`}>
+            {source.char_count}/10000 chars
           </p>
         </div>
       ))}

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { Eye, EyeOff } from "lucide-react";
 
 function debounce<T extends (...args: Parameters<T>) => void>(fn: T, ms: number): (...args: Parameters<T>) => void {
   let timer: ReturnType<typeof setTimeout>;
@@ -15,6 +16,27 @@ function debounce<T extends (...args: Parameters<T>) => void>(fn: T, ms: number)
     clearTimeout(timer);
     timer = setTimeout(() => fn(...args), ms);
   };
+}
+
+function Logo() {
+  return (
+    <div className="w-12 h-12 rounded-xl bg-primary mx-auto mb-4 flex items-center justify-center">
+      <span className="text-white font-bold text-lg">C</span>
+    </div>
+  );
+}
+
+function PasswordToggle({ show, onToggle }: { show: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={show ? "Hide password" : "Show password"}
+      className="absolute right-1 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-colors cursor-pointer"
+    >
+      {show ? <EyeOff size={16} /> : <Eye size={16} />}
+    </button>
+  );
 }
 
 function AcceptInviteForm() {
@@ -29,6 +51,8 @@ function AcceptInviteForm() {
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -41,6 +65,7 @@ function AcceptInviteForm() {
     password === confirm;
 
   useEffect(() => {
+    document.title = "Create account · COP Platform";
     if (!token && !code) router.push("/login");
   }, [token, code, router]);
 
@@ -70,14 +95,13 @@ function AcceptInviteForm() {
     setError("");
     setLoading(true);
     try {
-      const res = code
-        ? await acceptInviteCode(code, username, password, name)
-        : await acceptInvite(token, username, password, name);
-      const { access_token, refresh_token } = res.data;
-      localStorage.setItem("access_token", access_token);
-      localStorage.setItem("refresh_token", refresh_token);
+      if (code) {
+        await acceptInviteCode(code, username, password, name);
+      } else {
+        await acceptInvite(token, username, password, name);
+      }
       const meRes = await getMe();
-      setAuth(meRes.data, access_token, refresh_token);
+      setAuth(meRes.data);
       router.push("/dashboard");
     } catch (err: unknown) {
       const msg =
@@ -92,7 +116,7 @@ function AcceptInviteForm() {
   return (
     <div className="w-full max-w-sm">
       <div className="text-center mb-8">
-        <div className="w-12 h-12 rounded-xl gradient-brand mx-auto mb-4" />
+        <Logo />
         <h1 className="text-xl font-bold text-text-primary">Set up your account</h1>
         <p className="text-xs text-text-muted mt-1">Choose a username and password to get started</p>
       </div>
@@ -108,6 +132,7 @@ function AcceptInviteForm() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Your name"
+                autoComplete="name"
                 required
               />
             </div>
@@ -131,19 +156,24 @@ function AcceptInviteForm() {
             </div>
             <div>
               <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPw ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  autoComplete="new-password"
+                  required
+                  className="pr-10"
+                />
+                <PasswordToggle show={showPw} onToggle={() => setShowPw(!showPw)} />
+              </div>
               {password && (
                 <ul className="mt-2 space-y-1">
                   {checks.map((c) => (
                     <li key={c.id} className={`text-xs flex items-center gap-1.5 ${c.pass ? "text-success" : "text-text-muted"}`}>
-                      <span>{c.pass ? "✓" : "○"}</span>
+                      <span>{c.pass ? "✓" : "✗"}</span>
                       {c.label}
                     </li>
                   ))}
@@ -152,15 +182,20 @@ function AcceptInviteForm() {
             </div>
             <div>
               <Label htmlFor="confirm">Confirm password</Label>
-              <Input
-                id="confirm"
-                type="password"
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                placeholder="••••••••"
-                error={confirm.length > 0 && password !== confirm}
-                required
-              />
+              <div className="relative">
+                <Input
+                  id="confirm"
+                  type={showConfirm ? "text" : "password"}
+                  value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)}
+                  placeholder="••••••••"
+                  autoComplete="new-password"
+                  error={confirm.length > 0 && password !== confirm}
+                  required
+                  className="pr-10"
+                />
+                <PasswordToggle show={showConfirm} onToggle={() => setShowConfirm(!showConfirm)} />
+              </div>
               {confirm.length > 0 && password !== confirm && (
                 <p className="text-xs text-error mt-1">Passwords do not match</p>
               )}
@@ -176,10 +211,30 @@ function AcceptInviteForm() {
   );
 }
 
+function FallbackCard() {
+  return (
+    <div className="w-full max-w-sm">
+      <div className="text-center mb-8">
+        <Logo />
+        <div className="h-5 w-40 bg-elevated rounded mx-auto animate-pulse" />
+      </div>
+      <Card>
+        <CardContent className="p-6 space-y-4">
+          <div className="h-10 bg-elevated rounded animate-pulse" />
+          <div className="h-10 bg-elevated rounded animate-pulse" />
+          <div className="h-10 bg-elevated rounded animate-pulse" />
+          <div className="h-10 bg-elevated rounded animate-pulse" />
+          <div className="h-11 bg-elevated rounded animate-pulse" />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function AcceptInvitePage() {
   return (
     <div className="min-h-screen bg-base flex items-center justify-center p-4">
-      <Suspense fallback={<div className="text-text-muted text-sm">Loading...</div>}>
+      <Suspense fallback={<FallbackCard />}>
         <AcceptInviteForm />
       </Suspense>
     </div>

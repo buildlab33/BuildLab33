@@ -5,7 +5,8 @@ import {
   createContact, deleteActivity, getContact, logActivity, updateContact,
 } from "@/lib/contacts-api";
 import { getBrands } from "@/lib/api";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
+import { X } from "lucide-react";
 
 interface Brand { id: string; name: string }
 
@@ -13,21 +14,21 @@ const STATUS_OPTIONS: ContactStatus[] = ["lead","contacted","replied","meeting",
 const CHANNEL_OPTIONS: ActivityChannel[] = ["linkedin","email","call","meeting","other"];
 
 const STATUS_STYLE: Record<ContactStatus, string> = {
-  lead:      "text-text-muted bg-surface",
+  lead:      "text-text-muted bg-elevated",
   contacted: "text-primary bg-primary/10",
-  replied:   "text-warning bg-amber-500/10",
-  meeting:   "text-info bg-blue-500/10",
-  won:       "text-success bg-green-500/10",
-  lost:      "text-error bg-red-500/10",
-  client:    "text-success font-bold bg-green-500/10",
+  replied:   "text-warning bg-warning/10",
+  meeting:   "text-info bg-info/10",
+  won:       "text-success bg-success/10",
+  lost:      "text-error bg-error/10",
+  client:    "text-success font-bold bg-success/10",
 };
 
 const CHANNEL_STYLE: Record<ActivityChannel, string> = {
   linkedin: "bg-primary/15 text-primary",
-  email:    "bg-blue-500/15 text-blue-400",
-  call:     "bg-amber-500/15 text-amber-400",
-  meeting:  "bg-green-500/15 text-green-400",
-  other:    "bg-surface text-text-muted",
+  email:    "bg-info/15 text-info",
+  call:     "bg-warning/15 text-warning",
+  meeting:  "bg-success/15 text-success",
+  other:    "bg-elevated text-text-muted",
 };
 
 interface Props {
@@ -57,6 +58,12 @@ export default function ContactSlideOver({ contactId, mode, initialStatus, onClo
   const [actChannel, setActChannel] = useState<ActivityChannel>("linkedin");
   const [actNotes, setActNotes] = useState("");
   const [actSaving, setActSaving] = useState(false);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   useEffect(() => {
     getBrands().then(r => setBrands(r.data?.brands || [])).catch(() => toast.error("Failed to load brands"));
@@ -140,7 +147,7 @@ export default function ContactSlideOver({ contactId, mode, initialStatus, onClo
         {/* Header */}
         <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-4 border-b border-border flex-shrink-0">
           <div className="flex-1">
-            <h2 className="text-lg font-bold text-text">{mode === "create" ? "Add Contact" : (name || "Contact")}</h2>
+            <h2 className="text-lg font-bold text-text-primary">{mode === "create" ? "Add Contact" : (name || "Contact")}</h2>
             {mode === "view" && (company || role) && (
               <p className="text-sm text-text-muted mt-0.5">{[role, company].filter(Boolean).join(" @ ")}</p>
             )}
@@ -149,8 +156,8 @@ export default function ContactSlideOver({ contactId, mode, initialStatus, onClo
             {mode === "view" && (
               <span className={`text-xs px-2.5 py-1 rounded-full font-medium capitalize ${STATUS_STYLE[status]}`}>{status}</span>
             )}
-            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-elevated hover:bg-border text-text-muted hover:text-text transition-colors text-lg cursor-pointer">
-              &times;
+            <button onClick={onClose} aria-label="Close" className="w-8 h-8 flex items-center justify-center rounded-full bg-elevated hover:bg-border text-text-muted hover:text-text-primary transition-colors cursor-pointer">
+              <X size={15} />
             </button>
           </div>
         </div>
@@ -162,31 +169,31 @@ export default function ContactSlideOver({ contactId, mode, initialStatus, onClo
           <div className="px-6 py-5 border-b border-border space-y-4">
             <div className="space-y-1">
               <label className="text-xs font-medium text-text-muted uppercase tracking-wide">Name *</label>
-              <input value={name} onChange={e => setName(e.target.value)} className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:border-primary transition-colors" />
+              <input value={name} onChange={e => setName(e.target.value)} className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary transition-colors" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <label className="text-xs font-medium text-text-muted uppercase tracking-wide">Company</label>
-                <input value={company} onChange={e => setCompany(e.target.value)} className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:border-primary transition-colors" />
+                <input value={company} onChange={e => setCompany(e.target.value)} className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary transition-colors" />
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-medium text-text-muted uppercase tracking-wide">Role</label>
-                <input value={role} onChange={e => setRole(e.target.value)} className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:border-primary transition-colors" />
+                <input value={role} onChange={e => setRole(e.target.value)} className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary transition-colors" />
               </div>
             </div>
             <div className="space-y-1">
               <label className="text-xs font-medium text-text-muted uppercase tracking-wide">Email</label>
-              <input value={email} onChange={e => setEmail(e.target.value)} type="email" className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:border-primary transition-colors" />
+              <input value={email} onChange={e => setEmail(e.target.value)} type="email" className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary transition-colors" />
             </div>
             <div className="space-y-1">
               <label className="text-xs font-medium text-text-muted uppercase tracking-wide">LinkedIn URL</label>
-              <input value={linkedin} onChange={e => setLinkedin(e.target.value)} className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:border-primary transition-colors" />
+              <input value={linkedin} onChange={e => setLinkedin(e.target.value)} className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary transition-colors" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <label className="text-xs font-medium text-text-muted uppercase tracking-wide">Brand</label>
                 <div className="relative">
-                  <select value={brandId} onChange={e => setBrandId(e.target.value)} className="w-full appearance-none bg-background border border-border rounded-lg px-3 py-2 text-sm text-text pr-7 focus:outline-none focus:border-primary transition-colors">
+                  <select value={brandId} onChange={e => setBrandId(e.target.value)} className="w-full appearance-none bg-background border border-border rounded-lg px-3 py-2 text-sm text-text-primary pr-7 focus:outline-none focus:border-primary transition-colors">
                     <option value="">None</option>
                     {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                   </select>
@@ -196,7 +203,7 @@ export default function ContactSlideOver({ contactId, mode, initialStatus, onClo
               <div className="space-y-1">
                 <label className="text-xs font-medium text-text-muted uppercase tracking-wide">Status</label>
                 <div className="relative">
-                  <select value={status} onChange={e => setStatus(e.target.value as ContactStatus)} className="w-full appearance-none bg-background border border-border rounded-lg px-3 py-2 text-sm text-text pr-7 focus:outline-none focus:border-primary transition-colors">
+                  <select value={status} onChange={e => setStatus(e.target.value as ContactStatus)} className="w-full appearance-none bg-background border border-border rounded-lg px-3 py-2 text-sm text-text-primary pr-7 focus:outline-none focus:border-primary transition-colors">
                     {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                   <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-muted text-xs">&#9660;</span>
@@ -205,7 +212,7 @@ export default function ContactSlideOver({ contactId, mode, initialStatus, onClo
             </div>
             <div className="space-y-1">
               <label className="text-xs font-medium text-text-muted uppercase tracking-wide">Notes</label>
-              <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-text resize-none focus:outline-none focus:border-primary transition-colors" />
+              <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-text-primary resize-none focus:outline-none focus:border-primary transition-colors" />
             </div>
           </div>
 
@@ -213,7 +220,7 @@ export default function ContactSlideOver({ contactId, mode, initialStatus, onClo
           {mode === "view" && contact && (
             <>
               <div className="px-6 py-5 border-b border-border">
-                <h3 className="text-sm font-semibold text-text mb-3">Activity Log</h3>
+                <h3 className="text-sm font-semibold text-text-primary mb-3">Activity Log</h3>
                 {contact.activities.length === 0 ? (
                   <p className="text-sm text-text-muted">No activities logged yet.</p>
                 ) : (
@@ -223,9 +230,9 @@ export default function ContactSlideOver({ contactId, mode, initialStatus, onClo
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap mt-0.5 ${CHANNEL_STYLE[a.channel as ActivityChannel]}`}>{a.channel}</span>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs text-text-muted mb-0.5">{a.activity_date}</p>
-                          <p className="text-sm text-text break-words">{a.notes}</p>
+                          <p className="text-sm text-text-primary break-words">{a.notes}</p>
                         </div>
-                        <button onClick={() => handleDeleteActivity(a.id)} className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-error/10 text-text-muted hover:text-error transition-colors text-sm flex-shrink-0 cursor-pointer">&times;</button>
+                        <button onClick={() => handleDeleteActivity(a.id)} aria-label="Delete activity" className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-error/10 text-text-muted hover:text-error transition-colors flex-shrink-0 cursor-pointer"><X size={12} /></button>
                       </div>
                     ))}
                   </div>
@@ -233,16 +240,16 @@ export default function ContactSlideOver({ contactId, mode, initialStatus, onClo
               </div>
 
               <div className="px-6 py-5 space-y-3">
-                <h3 className="text-sm font-semibold text-text">Log Activity</h3>
+                <h3 className="text-sm font-semibold text-text-primary">Log Activity</h3>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <label className="text-xs font-medium text-text-muted uppercase tracking-wide">Date</label>
-                    <input type="date" value={actDate} onChange={e => setActDate(e.target.value)} className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:border-primary transition-colors" />
+                    <input type="date" value={actDate} onChange={e => setActDate(e.target.value)} className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary transition-colors" />
                   </div>
                   <div className="space-y-1">
                     <label className="text-xs font-medium text-text-muted uppercase tracking-wide">Channel</label>
                     <div className="relative">
-                      <select value={actChannel} onChange={e => setActChannel(e.target.value as ActivityChannel)} className="w-full appearance-none bg-background border border-border rounded-lg px-3 py-2 text-sm text-text pr-7 focus:outline-none focus:border-primary transition-colors">
+                      <select value={actChannel} onChange={e => setActChannel(e.target.value as ActivityChannel)} className="w-full appearance-none bg-background border border-border rounded-lg px-3 py-2 text-sm text-text-primary pr-7 focus:outline-none focus:border-primary transition-colors">
                         {CHANNEL_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                       <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-muted text-xs">&#9660;</span>
@@ -251,7 +258,7 @@ export default function ContactSlideOver({ contactId, mode, initialStatus, onClo
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-text-muted uppercase tracking-wide">Notes</label>
-                  <textarea value={actNotes} onChange={e => setActNotes(e.target.value)} rows={2} placeholder="What happened?" className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-text resize-none focus:outline-none focus:border-primary transition-colors" />
+                  <textarea value={actNotes} onChange={e => setActNotes(e.target.value)} rows={2} placeholder="What happened?" className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-text-primary resize-none focus:outline-none focus:border-primary transition-colors" />
                 </div>
               </div>
             </>
@@ -261,7 +268,7 @@ export default function ContactSlideOver({ contactId, mode, initialStatus, onClo
         {/* Footer */}
         <div className="px-6 py-4 border-t border-border bg-elevated flex-shrink-0 flex gap-2">
           {mode === "view" && contact && (
-            <button onClick={handleLogActivity} disabled={actSaving || !actNotes.trim()} className="flex-1 bg-elevated border border-border text-text rounded-lg py-2 text-sm font-medium hover:bg-border disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors">
+            <button onClick={handleLogActivity} disabled={actSaving || !actNotes.trim()} className="flex-1 bg-elevated border border-border text-text-secondary rounded-lg py-2 text-sm font-medium hover:bg-border hover:text-text-primary disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors">
               {actSaving ? "Logging..." : "Log Activity"}
             </button>
           )}

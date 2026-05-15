@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { getPosts, submitPost, unsubmitPost, deletePost, PostItem, getBrands, BrandPublic } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
@@ -9,21 +9,28 @@ import { BrandBadge } from "@/components/domain/BrandBadge";
 import { StatusBadge } from "@/components/domain/StatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FileText } from "lucide-react";
+import { FileText, Sparkles, ChevronDown } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "@/components/ui/toast";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 
 const FILTER_OPTIONS = ["all", "draft", "pending", "approved", "scheduled", "published", "rejected"];
+
+type SortMode = "newest" | "oldest" | "brand" | "status";
 
 export default function PostsPage() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const [posts, setPosts] = useState<PostItem[]>([]);
+  const [allCounts, setAllCounts] = useState<Record<string, number>>({});
   const [brands, setBrands] = useState<BrandPublic[]>([]);
   const [filter, setFilter] = useState("all");
+  const [sort, setSort] = useState<SortMode>("newest");
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<PostItem | null>(null);
+
+  useEffect(() => { document.title = "Posts · COP Platform"; }, []);
 
   const getBrandName = (id: string) => brands.find((b) => b.id === id)?.name ?? id;
 
@@ -40,9 +47,19 @@ export default function PostsPage() {
     }
   }, [filter]);
 
-  useEffect(() => {
-    loadPosts();
-  }, [loadPosts]);
+  const loadCounts = useCallback(async () => {
+    try {
+      const res = await getPosts();
+      const counts: Record<string, number> = { all: res.data.length };
+      for (const s of FILTER_OPTIONS.slice(1)) {
+        counts[s] = res.data.filter((p) => p.status === s).length;
+      }
+      setAllCounts(counts);
+    } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => { loadPosts(); }, [loadPosts]);
+  useEffect(() => { loadCounts(); }, [posts.length]);
 
   useEffect(() => {
     getBrands().then((res) => {
@@ -50,6 +67,17 @@ export default function PostsPage() {
       setBrands(data);
     }).catch(() => toast.error("Failed to load brands"));
   }, []);
+
+  const sortedPosts = useMemo(() => {
+    const arr = [...posts];
+    switch (sort) {
+      case "oldest": return arr.sort((a, b) => +new Date(a.created_at) - +new Date(b.created_at));
+      case "brand": return arr.sort((a, b) => getBrandName(a.brand_id).localeCompare(getBrandName(b.brand_id)));
+      case "status": return arr.sort((a, b) => a.status.localeCompare(b.status));
+      case "newest":
+      default: return arr.sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
+    }
+  }, [posts, sort, brands]);
 
   const handleSubmit = async (e: React.MouseEvent, post: PostItem) => {
     e.stopPropagation();
@@ -73,23 +101,19 @@ export default function PostsPage() {
       toast.success("Post moved back to draft");
       loadPosts();
     } catch {
-      toast.error("Failed to unsubmit post");
+      toast.error("Failed to retract post");
     } finally {
       setActionLoading(null);
     }
   };
 
-  const handleDeleteClick = (e: React.MouseEvent, post: PostItem) => {
-    e.stopPropagation();
-    setDeleteConfirm(post.id);
-  };
-
-  const handleDeleteConfirm = async (e: React.MouseEvent, post: PostItem) => {
-    e.stopPropagation();
-    setDeleteConfirm(null);
-    setActionLoading(post.id);
+  const handleDeleteConfirmed = async () => {
+    if (!deleteTarget) return;
+    const target = deleteTarget;
+    setActionLoading(target.id);
+    setDeleteTarget(null);
     try {
-      await deletePost(post.id);
+      await deletePost(target.id);
       toast.success("Draft deleted");
       loadPosts();
     } catch {
@@ -108,27 +132,48 @@ export default function PostsPage() {
         subtitle="Manage your content pipeline"
         action={
           <Button onClick={() => router.push("/dashboard/generate")}>
-            ✦ Generate New
+            <Sparkles size={16} /> Generate New
           </Button>
         }
       />
 
-      {/* Filter pills */}
-      <div className="flex gap-2 mb-6 flex-wrap">
-        {FILTER_OPTIONS.map((s) => (
-          <button
-            key={s}
-            onClick={() => setFilter(s)}
-            className={[
-              "px-3 py-1.5 rounded-full border text-xs font-semibold capitalize transition-colors duration-150",
-              filter === s
-                ? "border-primary bg-primary-muted text-text-active"
-                : "border-border bg-surface text-text-muted hover:border-elevated hover:text-text-secondary",
-            ].join(" ")}
+      {/* Filter pills with counts */}
+      <div className="flex gap-2 mb-4 flex-wrap">
+        {FILTER_OPTIONS.map((s) => {
+          const count = allCounts[s];
+          return (
+            <button
+              key={s}
+              onClick={() => setFilter(s)}
+              className={[
+                "px-3 py-1.5 rounded-full border text-xs font-semibold capitalize transition-colors duration-150 cursor-pointer",
+                filter === s
+                  ? "border-primary bg-primary-muted text-text-active"
+                  : "border-border bg-surface text-text-muted hover:border-elevated hover:text-text-secondary",
+              ].join(" ")}
+            >
+              {s}{typeof count === "number" && <span className="ml-1.5 opacity-70 tabular-nums">{count}</span>}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Sort dropdown */}
+      <div className="flex items-center justify-end gap-2 mb-4">
+        <span className="text-xs text-text-muted">Sort by</span>
+        <div className="relative">
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as SortMode)}
+            className="appearance-none rounded-md border border-border bg-surface text-text-primary text-xs font-medium pl-3 pr-8 py-1.5 cursor-pointer focus:outline-none focus:border-primary"
           >
-            {s}
-          </button>
-        ))}
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+            <option value="brand">Brand</option>
+            <option value="status">Status</option>
+          </select>
+          <ChevronDown size={13} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-muted" />
+        </div>
       </div>
 
       {/* Posts list */}
@@ -154,7 +199,7 @@ export default function PostsPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {posts.map((post) => (
+          {sortedPosts.map((post) => (
             <Card
               key={post.id}
               clickable
@@ -176,7 +221,7 @@ export default function PostsPage() {
                 {post.text.length > 180 ? post.text.slice(0, 180) + "..." : post.text}
               </p>
               {post.status === "rejected" && post.rejection_reason && (
-                <p className="mt-2 text-xs text-error bg-red-50 dark:bg-red-950/20 rounded px-3 py-2">
+                <p className="mt-2 text-xs text-error bg-error/10 rounded px-3 py-2">
                   Rejected: {post.rejection_reason}
                 </p>
               )}
@@ -184,45 +229,26 @@ export default function PostsPage() {
                 {post.status === "draft" && (
                   <>
                     <Button
-                      className="text-xs px-3 py-1.5 h-auto"
+                      size="sm"
                       disabled={actionLoading === post.id}
                       onClick={(e) => handleSubmit(e, post)}
                     >
                       Submit for Approval
                     </Button>
-                    {deleteConfirm === post.id ? (
-                      <>
-                        <Button
-                          variant="ghost"
-                          className="text-xs px-3 py-1.5 h-auto text-error hover:text-error border border-error/40"
-                          disabled={actionLoading === post.id}
-                          onClick={(e) => handleDeleteConfirm(e, post)}
-                        >
-                          Confirm Delete
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          className="text-xs px-3 py-1.5 h-auto"
-                          onClick={(e) => { e.stopPropagation(); setDeleteConfirm(null); }}
-                        >
-                          Cancel
-                        </Button>
-                      </>
-                    ) : (
-                      <Button
-                        variant="ghost"
-                        className="text-xs px-3 py-1.5 h-auto text-error hover:text-error"
-                        disabled={actionLoading === post.id}
-                        onClick={(e) => handleDeleteClick(e, post)}
-                      >
-                        Delete
-                      </Button>
-                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-error hover:text-error"
+                      disabled={actionLoading === post.id}
+                      onClick={(e) => { e.stopPropagation(); setDeleteTarget(post); }}
+                    >
+                      Delete
+                    </Button>
                   </>
                 )}
                 {post.status === "rejected" && (
                   <Button
-                    className="text-xs px-3 py-1.5 h-auto"
+                    size="sm"
                     onClick={() => router.push(`/dashboard/posts/${post.id}`)}
                   >
                     Edit &amp; Resubmit
@@ -231,17 +257,18 @@ export default function PostsPage() {
                 {post.status === "pending" && (
                   <Button
                     variant="ghost"
-                    className="text-xs px-3 py-1.5 h-auto text-text-muted"
+                    size="sm"
+                    className="text-text-muted"
                     disabled={actionLoading === post.id}
                     onClick={(e) => handleUnsubmit(e, post)}
                   >
-                    Un-submit
+                    Retract
                   </Button>
                 )}
                 {isAdmin && post.status === "pending" && (
                   <Button
                     variant="ghost"
-                    className="text-xs px-3 py-1.5 h-auto"
+                    size="sm"
                     onClick={() => router.push(`/dashboard/posts/${post.id}`)}
                   >
                     Review
@@ -251,7 +278,7 @@ export default function PostsPage() {
             </Card>
           ))}
 
-          {posts.length === 0 && !loading && (
+          {sortedPosts.length === 0 && !loading && (
             <div className="text-center py-16 text-text-muted">
               <FileText size={32} className="mx-auto mb-3 text-text-muted/50" />
               <div className="text-sm">No posts found</div>
@@ -262,6 +289,17 @@ export default function PostsPage() {
           )}
         </div>
       )}
+
+      <ConfirmModal
+        open={!!deleteTarget}
+        title="Delete this draft?"
+        description={deleteTarget ? `This will permanently delete the ${deleteTarget.platform} draft. This cannot be undone.` : ""}
+        confirmLabel="Delete"
+        destructive
+        loading={!!actionLoading && actionLoading === deleteTarget?.id}
+        onConfirm={handleDeleteConfirmed}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

@@ -475,7 +475,7 @@ async def disable_2fa(
 # ── Accept invite ────────────────────────────────────────────────────────────
 
 @router.post("/accept-invite", response_model=TokenPair)
-async def accept_invite(body: AcceptInviteRequest):
+async def accept_invite(response: Response, body: AcceptInviteRequest):
     """Accept an invite link: set username + password, return tokens."""
     try:
         validate_password(body.password)
@@ -519,14 +519,14 @@ async def accept_invite(body: AcceptInviteRequest):
         }).execute()
     except Exception:
         pass
-    return TokenPair(
-        access_token=create_access_token(user["id"], user["role"]),
-        refresh_token=create_refresh_token(user["id"]),
-    )
+    access_token = create_access_token(user["id"], user["role"])
+    refresh_token = create_refresh_token(user["id"])
+    _set_auth_cookies(response, access_token, refresh_token)
+    return TokenPair(access_token=access_token, refresh_token=refresh_token)
 
 
 @router.post("/accept-invite-code", response_model=TokenPair)
-async def accept_invite_code(body: AcceptInviteRequest):
+async def accept_invite_code(response: Response, body: AcceptInviteRequest):
     """Accept an invite code: set name, username, password, return tokens."""
     try:
         validate_password(body.password)
@@ -556,7 +556,7 @@ async def accept_invite_code(body: AcceptInviteRequest):
     if not insert.data:
         raise HTTPException(status_code=500, detail="Failed to create account")
     user = insert.data[0]
-    return TokenPair(
-        access_token=create_access_token(user["id"], user["role"]),
-        refresh_token=create_refresh_token(user["id"]),
-    )
+    access_token = create_access_token(user["id"], user["role"])
+    refresh_token = create_refresh_token(user["id"])
+    _set_auth_cookies(response, access_token, refresh_token)
+    return TokenPair(access_token=access_token, refresh_token=refresh_token)

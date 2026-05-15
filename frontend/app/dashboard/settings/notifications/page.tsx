@@ -1,10 +1,11 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/auth";
 import { updateMe } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "@/components/ui/toast";
 
 const EVENTS = [
@@ -26,6 +27,14 @@ export default function NotificationsPage() {
   );
   const [saving, setSaving] = useState(false);
 
+  useEffect(() => { document.title = "Notifications · Settings"; }, []);
+
+  useEffect(() => {
+    if (Object.keys(prefs).length > 0) {
+      setToggles(Object.fromEntries(EVENTS.map((e) => [e.key, prefs[e.key] !== false])));
+    }
+  }, [user?.id]);
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -39,9 +48,11 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="max-w-lg">
-      <Card>
-        <CardHeader><CardTitle>Email Notifications</CardTitle></CardHeader>
+    <div>
+      <PageHeader title="Notifications" subtitle="Choose which events trigger an email" />
+      <div className="max-w-lg">
+        <Card>
+          <CardHeader><CardTitle>Email Notifications</CardTitle></CardHeader>
         <CardContent className="space-y-1">
           {EVENTS.map((event) => (
             <div key={event.key} className="flex items-center justify-between py-3 border-b border-border last:border-0">
@@ -57,11 +68,12 @@ export default function NotificationsPage() {
           ))}
           <div className="pt-4">
             <Button className="w-full" disabled={saving} onClick={handleSave}>
-              {saving ? "Saving..." : "Save Preferences"}
+              {saving ? "Saving…" : "Save Preferences"}
             </Button>
           </div>
         </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }

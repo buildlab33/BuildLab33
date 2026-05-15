@@ -1,14 +1,17 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTheme, THEMES, type Theme } from "@/lib/theme";
 import { updateMe } from "@/lib/api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "@/components/ui/toast";
-import { Check } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 
 export default function AppearancePage() {
   const { theme, setTheme } = useTheme();
   const [saving, setSaving] = useState<Theme | null>(null);
+
+  useEffect(() => { document.title = "Appearance · Settings"; }, []);
 
   const handleSelect = async (next: Theme) => {
     if (next === theme || saving) return;
@@ -25,13 +28,10 @@ export default function AppearancePage() {
   };
 
   return (
-    <div className="max-w-2xl">
-      <Card>
-        <CardHeader>
-          <CardTitle>Appearance</CardTitle>
-          <p className="text-sm text-text-secondary mt-1">Choose a theme for your workspace</p>
-        </CardHeader>
-        <CardContent>
+    <div>
+      <PageHeader title="Appearance" subtitle="Choose a theme for your workspace" />
+      <Card className="max-w-2xl">
+        <CardContent className="pt-5">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {THEMES.map((t) => {
               const isActive = theme === t.id;
@@ -87,7 +87,7 @@ export default function AppearancePage() {
                         style={{ backgroundColor: t.primary }}
                       >
                         {isSaving ? (
-                          <span className="w-2 h-2 border border-white/60 border-t-white rounded-full animate-spin block" />
+                          <Loader2 size={10} className="text-white animate-spin" />
                         ) : (
                           <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
                         )}

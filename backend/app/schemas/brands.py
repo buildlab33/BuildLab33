@@ -15,7 +15,7 @@ class HashtagSet(BaseModel):
 
 class BrandCreate(BaseModel):
     name: str = Field(min_length=1, max_length=120)
-    industry: str = Field(default="", max_length=80)
+    industry: str = Field(default="", max_length=255)
     brand_colour: str = Field(default="#6366f1", pattern=r"^#[0-9a-fA-F]{6}$")
     default_timezone: str = Field(default="Asia/Singapore", max_length=50)
     content_pillars: list[ContentPillar] = []
@@ -25,7 +25,7 @@ class BrandCreate(BaseModel):
 
 class BrandUpdate(BaseModel):
     name: Optional[str] = Field(default=None, min_length=1, max_length=120)
-    industry: Optional[str] = Field(default=None, max_length=80)
+    industry: Optional[str] = Field(default=None, max_length=255)
     brand_colour: Optional[str] = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
     default_timezone: Optional[str] = Field(default=None, max_length=50)
     content_pillars: Optional[list[ContentPillar]] = None
@@ -100,7 +100,7 @@ class AnalyseSourcesRequest(BaseModel):
     @field_validator("pasted_texts")
     @classmethod
     def cap_pasted_texts(cls, v: list[str]) -> list[str]:
-        MAX = 5000
+        MAX = 10000
         return [t[:MAX] for t in v]
 
 

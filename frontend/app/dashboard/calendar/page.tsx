@@ -6,10 +6,13 @@ import {
   PostItem, BrandPublic,
 } from "@/lib/api";
 import { ClashModal } from "@/components/domain/ClashModal";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/domain/StatusBadge";
 import { toast } from "@/components/ui/toast";
+import { ChevronLeft, ChevronRight, X, ArrowRight, CalendarDays } from "lucide-react";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -18,7 +21,6 @@ function getDaysInMonth(year: number, month: number) {
 }
 
 function getFirstDayOfWeek(year: number, month: number) {
-  // Returns 0=Mon ... 6=Sun
   const day = new Date(year, month, 1).getDay();
   return (day + 6) % 7;
 }
@@ -49,7 +51,7 @@ function getWeekDates(weekStart: Date): Date[] {
 
 function getWeekStart(date: Date): Date {
   const d = new Date(date);
-  const day = (d.getDay() + 6) % 7; // Mon=0
+  const day = (d.getDay() + 6) % 7;
   d.setDate(d.getDate() - day);
   d.setHours(0, 0, 0, 0);
   return d;
@@ -65,35 +67,32 @@ const TIME_HOURS = [8, 10, 12, 14, 16, 18, 20];
 export default function CalendarPage() {
   const router = useRouter();
   const today = new Date();
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "local";
 
-  // View state
   const [view, setView] = useState<"month" | "week">("month");
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [weekStart, setWeekStart] = useState(getWeekStart(today));
 
-  // Data
   const [posts, setPosts] = useState<PostItem[]>([]);
   const [approvedPosts, setApprovedPosts] = useState<PostItem[]>([]);
   const [brands, setBrands] = useState<BrandPublic[]>([]);
   const [brandFilter, setBrandFilter] = useState<string>("all");
   const [loading, setLoading] = useState(true);
 
-  // Schedule panel (click empty date)
   const [scheduleDate, setScheduleDate] = useState<string | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [scheduleTime, setScheduleTime] = useState("09:00");
   const [scheduling, setScheduling] = useState(false);
   const schedulePanelRef = useRef<HTMLDivElement>(null);
 
-  // Reschedule slide-over (click scheduled post pill)
   const [reschedulePost_, setReschedulePost] = useState<PostItem | null>(null);
   const [rescheduleDate, setRescheduleDate] = useState("");
   const [rescheduleTime, setRescheduleTime] = useState("09:00");
   const [rescheduling, setRescheduling] = useState(false);
+  const [rescheduleError, setRescheduleError] = useState("");
   const reschedulePanelRef = useRef<HTMLDivElement>(null);
 
-  // Clash modal
   const [clashData, setClashData] = useState<{
     clashingPost: { id: string; text: string; platform: string; scheduled_at: string };
     pendingPostId: string;
@@ -101,7 +100,11 @@ export default function CalendarPage() {
   } | null>(null);
   const [clashSubmitting, setClashSubmitting] = useState(false);
 
-  // Close panels on outside click
+  const [unscheduleConfirm, setUnscheduleConfirm] = useState(false);
+
+  useEffect(() => { document.title = "Calendar · COP Platform"; }, []);
+
+  // Close panels on outside click or ESC
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (schedulePanelRef.current && !schedulePanelRef.current.contains(e.target as Node)) {
@@ -112,14 +115,24 @@ export default function CalendarPage() {
         setReschedulePost(null);
       }
     };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setScheduleDate(null);
+        setSelectedPostId(null);
+        setReschedulePost(null);
+      }
+    };
     document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", handler);
+      window.removeEventListener("keydown", onKey);
+    };
   }, []);
 
   const getBrandName = (id: string) => brands.find((b) => b.id === id)?.name ?? id;
   const getBrandColour = (id: string) => brands.find((b) => b.id === id)?.brand_colour ?? "var(--color-primary)";
 
-  // Load brands once
   useEffect(() => {
     getBrands().then((res) => {
       const data: BrandPublic[] = res.data?.brands || res.data || [];
@@ -127,7 +140,6 @@ export default function CalendarPage() {
     }).catch(() => toast.error("Failed to load brands"));
   }, []);
 
-  // Load scheduled posts when brand changes
   const loadPosts = useCallback(async () => {
     setLoading(true);
     try {
@@ -144,7 +156,6 @@ export default function CalendarPage() {
 
   useEffect(() => { loadPosts(); }, [loadPosts]);
 
-  // Load approved posts when schedule panel opens
   const openSchedulePanel = async (dateStr: string) => {
     setScheduleDate(dateStr);
     setSelectedPostId(null);
@@ -159,6 +170,7 @@ export default function CalendarPage() {
 
   const openReschedulePanel = (post: PostItem) => {
     setReschedulePost(post);
+    setRescheduleError("");
     if (post.scheduled_at) {
       const d = new Date(post.scheduled_at);
       setRescheduleDate(isoDate(d));
@@ -166,9 +178,13 @@ export default function CalendarPage() {
     }
   };
 
-  // Actions
   const handleSchedule = async () => {
     if (!scheduleDate || !selectedPostId) return;
+    const dt = new Date(isoDateTime(scheduleDate, scheduleTime));
+    if (dt <= new Date()) {
+      toast.error("Date and time must be in the future.");
+      return;
+    }
     setScheduling(true);
     try {
       await schedulePost(selectedPostId, isoDateTime(scheduleDate, scheduleTime));
@@ -195,6 +211,12 @@ export default function CalendarPage() {
 
   const handleReschedule = async () => {
     if (!reschedulePost_ || !rescheduleDate) return;
+    const dt = new Date(isoDateTime(rescheduleDate, rescheduleTime));
+    if (dt <= new Date()) {
+      setRescheduleError("Date and time must be in the future.");
+      return;
+    }
+    setRescheduleError("");
     setRescheduling(true);
     try {
       await reschedulePost(reschedulePost_.id, isoDateTime(rescheduleDate, rescheduleTime));
@@ -265,14 +287,11 @@ export default function CalendarPage() {
     }
   };
 
-  const handleClashPickDifferentTime = () => {
-    closeClashModal();
-    // panels remain open — user can change the time and re-submit
-  };
+  const handleClashPickDifferentTime = () => closeClashModal();
 
   const handleUnschedule = async () => {
     if (!reschedulePost_) return;
-    if (!confirm("Unschedule this post?")) return;
+    setUnscheduleConfirm(false);
     setRescheduling(true);
     try {
       await unschedulePost(reschedulePost_.id);
@@ -286,7 +305,6 @@ export default function CalendarPage() {
     }
   };
 
-  // Navigation
   const prevPeriod = () => {
     if (view === "month") {
       if (currentMonth === 0) { setCurrentMonth(11); setCurrentYear((y) => y - 1); }
@@ -307,8 +325,14 @@ export default function CalendarPage() {
       setWeekStart(d);
     }
   };
+  const goToToday = () => {
+    const t = new Date();
+    setCurrentMonth(t.getMonth());
+    setCurrentYear(t.getFullYear());
+    setWeekStart(getWeekStart(t));
+  };
 
-  // Posts indexed by date string "YYYY-MM-DD"
+  // Posts indexed by date string
   const postsByDate: Record<string, PostItem[]> = {};
   posts.forEach((p) => {
     if (!p.scheduled_at) return;
@@ -318,6 +342,12 @@ export default function CalendarPage() {
   });
 
   const todayStr = isoDate(today);
+  const minRescheduleTime = rescheduleDate === todayStr
+    ? `${String(today.getHours()).padStart(2, "0")}:${String(today.getMinutes()).padStart(2, "0")}`
+    : undefined;
+  const minScheduleTime = scheduleDate === todayStr
+    ? `${String(today.getHours()).padStart(2, "0")}:${String(today.getMinutes()).padStart(2, "0")}`
+    : undefined;
 
   // ── Monthly Grid ─────────────────────────────────────────────────────────
 
@@ -326,33 +356,35 @@ export default function CalendarPage() {
     const firstDow = getFirstDayOfWeek(currentYear, currentMonth);
     const cells: React.ReactNode[] = [];
 
-    // Empty leading cells
     for (let i = 0; i < firstDow; i++) {
-      cells.push(<div key={`empty-${i}`} className="min-h-[80px] rounded-lg" />);
+      cells.push(<div key={`empty-${i}`} className="min-h-[100px] rounded-lg" />);
     }
 
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
       const dayPosts = postsByDate[dateStr] || [];
       const isToday = dateStr === todayStr;
+      const visible = dayPosts.slice(0, 3);
+      const hidden = dayPosts.length - visible.length;
 
       cells.push(
         <div
           key={dateStr}
-          className={`min-h-[80px] rounded-lg border p-1.5 cursor-pointer transition-colors ${
-            isToday ? "border-primary/40 bg-primary-muted/10" : "border-border hover:border-elevated"
+          className={`min-h-[100px] rounded-lg border p-1.5 cursor-pointer transition-colors ${
+            isToday ? "border-primary bg-primary/10" : "border-border hover:border-elevated"
           }`}
           onClick={(e) => { e.stopPropagation(); openSchedulePanel(dateStr); }}
         >
-          <div className={`text-xs font-semibold mb-1 px-0.5 ${isToday ? "text-text-active" : "text-text-muted"}`}>
-            {day}
+          <div className={`text-xs font-semibold mb-1 px-0.5 flex items-center justify-between ${isToday ? "text-text-active" : "text-text-muted"}`}>
+            <span>{day}</span>
+            {isToday && <span className="text-[9px] uppercase tracking-wide bg-primary text-white rounded px-1 py-px">Today</span>}
           </div>
           <div className="flex flex-col gap-0.5" onClick={(e) => e.stopPropagation()}>
-            {dayPosts.map((p) => (
+            {visible.map((p) => (
               <button
                 key={p.id}
                 onClick={() => openReschedulePanel(p)}
-                className="w-full text-left text-[10px] px-1.5 py-0.5 rounded truncate font-medium"
+                className="w-full text-left text-[10px] px-1.5 py-0.5 rounded truncate font-medium cursor-pointer"
                 style={{
                   backgroundColor: `${getBrandColour(p.brand_id)}26`,
                   border: `1px solid ${getBrandColour(p.brand_id)}60`,
@@ -362,6 +394,14 @@ export default function CalendarPage() {
                 {p.platform} · {getBrandName(p.brand_id)}
               </button>
             ))}
+            {hidden > 0 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); openSchedulePanel(dateStr); }}
+                className="w-full text-left text-[10px] px-1.5 py-0.5 rounded font-semibold text-text-muted hover:text-text-active cursor-pointer"
+              >
+                +{hidden} more
+              </button>
+            )}
           </div>
         </div>
       );
@@ -375,8 +415,7 @@ export default function CalendarPage() {
     const weekDates = getWeekDates(weekStart);
     return (
       <div className="overflow-x-auto">
-        <div style={{ display: "grid", gridTemplateColumns: "48px repeat(7, 1fr)", gap: "2px" }}>
-          {/* Header row */}
+        <div style={{ display: "grid", gridTemplateColumns: "48px repeat(7, minmax(80px, 1fr))", gap: "2px" }}>
           <div />
           {weekDates.map((d, i) => {
             const ds = isoDate(d);
@@ -388,7 +427,6 @@ export default function CalendarPage() {
               </div>
             );
           })}
-          {/* Time rows */}
           {TIME_HOURS.map((hour, rowIdx) => (
             <React.Fragment key={hour}>
               <div className="text-[10px] text-text-muted text-right pr-2 pt-1.5">
@@ -404,15 +442,15 @@ export default function CalendarPage() {
                 return (
                   <div
                     key={`${hour}-${colIdx}`}
-                    className="border border-border rounded min-h-[40px] p-0.5 cursor-pointer hover:border-elevated hover:bg-primary/5 transition-colors"
+                    className="border border-border rounded min-h-[52px] p-1 cursor-pointer hover:border-elevated hover:bg-primary/5 transition-colors"
                     onClick={(e) => { e.stopPropagation(); openSchedulePanel(ds); }}
                   >
-                    <div onClick={(e) => e.stopPropagation()}>
+                    <div onClick={(e) => e.stopPropagation()} className="flex flex-col gap-0.5">
                       {dayPosts.map((p) => (
                         <button
                           key={p.id}
                           onClick={() => openReschedulePanel(p)}
-                          className="w-full text-left text-[9px] px-1 py-0.5 rounded truncate font-medium mb-0.5"
+                          className="w-full text-left text-[10px] px-1 py-0.5 rounded truncate font-medium cursor-pointer"
                           style={{
                             backgroundColor: `${getBrandColour(p.brand_id)}26`,
                             border: `1px solid ${getBrandColour(p.brand_id)}60`,
@@ -433,8 +471,6 @@ export default function CalendarPage() {
     );
   };
 
-  // ── Period Label ──────────────────────────────────────────────────────────
-
   const periodLabel = view === "month"
     ? `${MONTH_NAMES[currentMonth]} ${currentYear}`
     : (() => {
@@ -443,34 +479,35 @@ export default function CalendarPage() {
         return `${weekStart.getDate()} ${MONTH_NAMES[weekStart.getMonth()]} – ${end.getDate()} ${MONTH_NAMES[end.getMonth()]} ${end.getFullYear()}`;
       })();
 
-  // ── Render ────────────────────────────────────────────────────────────────
-
   return (
     <div className="relative">
       <PageHeader title="Calendar" subtitle="Schedule and view your content pipeline" />
 
       {/* Top bar */}
       <div className="flex items-center gap-3 mb-4 flex-wrap">
-        {/* Period navigator */}
         <div className="flex items-center gap-1">
           <button
             onClick={prevPeriod}
-            className="px-2 py-1.5 rounded-md border border-border text-text-muted hover:bg-elevated hover:text-text-primary text-sm transition-colors"
-          >←</button>
-          <span className="px-3 text-sm font-semibold text-text-primary min-w-[180px] text-center">{periodLabel}</span>
+            aria-label="Previous period"
+            className="w-9 h-9 flex items-center justify-center rounded-md border border-border text-text-muted hover:bg-elevated hover:text-text-primary transition-colors cursor-pointer"
+          ><ChevronLeft size={16} /></button>
+          <span className="px-3 text-sm font-semibold text-text-primary min-w-[180px] text-center tabular-nums">{periodLabel}</span>
           <button
             onClick={nextPeriod}
-            className="px-2 py-1.5 rounded-md border border-border text-text-muted hover:bg-elevated hover:text-text-primary text-sm transition-colors"
-          >→</button>
+            aria-label="Next period"
+            className="w-9 h-9 flex items-center justify-center rounded-md border border-border text-text-muted hover:bg-elevated hover:text-text-primary transition-colors cursor-pointer"
+          ><ChevronRight size={16} /></button>
+          <Button variant="ghost" size="sm" onClick={goToToday} className="ml-1">
+            <CalendarDays size={14} /> Today
+          </Button>
         </div>
 
-        {/* View toggle */}
         <div className="flex rounded-md border border-border overflow-hidden">
           {(["month", "week"] as const).map((v) => (
             <button
               key={v}
               onClick={() => setView(v)}
-              className={`px-3 py-1.5 text-xs font-semibold capitalize transition-colors ${
+              className={`px-3 py-1.5 text-xs font-semibold capitalize transition-colors cursor-pointer ${
                 view === v
                   ? "bg-primary-muted text-text-active border-r border-border last:border-0"
                   : "text-text-muted hover:bg-elevated border-r border-border last:border-0"
@@ -479,11 +516,10 @@ export default function CalendarPage() {
           ))}
         </div>
 
-        {/* Brand filter */}
         <div className="flex gap-1 flex-wrap ml-auto">
           <button
             onClick={() => setBrandFilter("all")}
-            className={`px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${
+            className={`px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors cursor-pointer ${
               brandFilter === "all"
                 ? "border-primary bg-primary-muted text-text-active"
                 : "border-border text-text-muted hover:bg-elevated"
@@ -493,19 +529,40 @@ export default function CalendarPage() {
             <button
               key={b.id}
               onClick={() => setBrandFilter(b.id)}
-              className={`px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${
+              className={`px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors cursor-pointer inline-flex items-center gap-1.5 ${
                 brandFilter === b.id
                   ? "border-primary bg-primary-muted text-text-active"
                   : "border-border text-text-muted hover:bg-elevated"
               }`}
-            >{b.name}</button>
+            >
+              <span
+                className="w-2 h-2 rounded-full flex-shrink-0"
+                style={{ backgroundColor: b.brand_colour || "var(--color-primary)" }}
+              />
+              {b.name}
+            </button>
           ))}
         </div>
       </div>
 
       {/* Calendar grid */}
       {loading ? (
-        <div className="text-center py-16 text-text-muted text-sm">Loading...</div>
+        view === "month" ? (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "4px" }}>
+            {WEEK_DAYS.map((d) => (
+              <div key={d} className="text-center text-xs font-semibold text-text-muted py-2">{d}</div>
+            ))}
+            {Array.from({ length: 35 }).map((_, i) => (
+              <Skeleton key={i} className="min-h-[100px] rounded-lg" />
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {Array.from({ length: 7 }).map((_, i) => (
+              <Skeleton key={i} className="h-12 rounded-md" />
+            ))}
+          </div>
+        )
       ) : view === "month" ? (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "4px" }}>
           {WEEK_DAYS.map((d) => (
@@ -517,12 +574,12 @@ export default function CalendarPage() {
         renderWeekGrid()
       )}
 
-      {/* ── Schedule Panel (click empty date) ── */}
+      {/* ── Schedule Panel ── */}
       {scheduleDate && (
-        <div className="fixed inset-0 z-40" style={{ background: "rgba(0,0,0,0.3)" }}>
+        <div className="fixed inset-0 z-40 bg-black/30">
           <div
             ref={schedulePanelRef}
-            className="absolute right-0 top-0 h-full w-[360px] bg-surface border-l border-border flex flex-col shadow-xl"
+            className="absolute right-0 top-0 h-full w-full max-w-sm bg-surface border-l border-border flex flex-col shadow-xl"
           >
             <div className="flex items-center justify-between px-4 py-4 border-b border-border">
               <span className="text-sm font-bold text-text-primary">
@@ -530,8 +587,9 @@ export default function CalendarPage() {
               </span>
               <button
                 onClick={() => { setScheduleDate(null); setSelectedPostId(null); }}
-                className="text-text-muted hover:text-text-primary text-lg leading-none"
-              >×</button>
+                aria-label="Close"
+                className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-elevated text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+              ><X size={15} /></button>
             </div>
             <div className="flex-1 overflow-y-auto px-4 py-3">
               {approvedPosts.length === 0 ? (
@@ -541,7 +599,7 @@ export default function CalendarPage() {
                   <div key={p.id}>
                     <button
                       onClick={() => setSelectedPostId(selectedPostId === p.id ? null : p.id)}
-                      className={`w-full text-left rounded-lg border p-3 mb-2 transition-colors ${
+                      className={`w-full text-left rounded-lg border p-3 mb-2 transition-colors cursor-pointer ${
                         selectedPostId === p.id
                           ? "border-primary bg-primary-muted/20"
                           : "border-border hover:border-elevated"
@@ -558,11 +616,13 @@ export default function CalendarPage() {
                         <input
                           type="time"
                           value={scheduleTime}
+                          min={minScheduleTime}
                           onChange={(e) => setScheduleTime(e.target.value)}
-                          className="w-full rounded-md border border-border bg-elevated px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary mb-2"
+                          className="w-full rounded-md border border-border bg-elevated px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary mb-1"
                         />
-                        <Button onClick={handleSchedule} disabled={scheduling} className="w-full text-sm">
-                          {scheduling ? "Scheduling..." : "Schedule"}
+                        <p className="text-[10px] text-text-muted mb-2">Timezone: <span className="font-mono">{tz}</span></p>
+                        <Button onClick={handleSchedule} disabled={scheduling} className="w-full">
+                          {scheduling ? "Scheduling…" : "Schedule"}
                         </Button>
                       </div>
                     )}
@@ -573,21 +633,21 @@ export default function CalendarPage() {
             <div className="px-4 py-3 border-t border-border">
               <button
                 onClick={() => router.push("/dashboard/posts")}
-                className="text-xs text-text-muted hover:text-text-active transition-colors"
+                className="text-xs text-text-muted hover:text-text-active transition-colors inline-flex items-center gap-1 cursor-pointer"
               >
-                View all approved posts →
+                View all approved posts <ArrowRight size={12} />
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Reschedule Slide-over (click scheduled pill) ── */}
+      {/* ── Reschedule Slide-over ── */}
       {reschedulePost_ && (
-        <div className="fixed inset-0 z-40" style={{ background: "rgba(0,0,0,0.3)" }}>
+        <div className="fixed inset-0 z-40 bg-black/30">
           <div
             ref={reschedulePanelRef}
-            className="absolute right-0 top-0 h-full w-[360px] bg-surface border-l border-border flex flex-col shadow-xl"
+            className="absolute right-0 top-0 h-full w-full max-w-sm bg-surface border-l border-border flex flex-col shadow-xl"
           >
             <div className="flex items-center justify-between px-4 py-4 border-b border-border">
               <div>
@@ -600,8 +660,9 @@ export default function CalendarPage() {
               </div>
               <button
                 onClick={() => setReschedulePost(null)}
-                className="text-text-muted hover:text-text-primary text-lg leading-none"
-              >×</button>
+                aria-label="Close"
+                className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-elevated text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+              ><X size={15} /></button>
             </div>
             <div className="flex-1 overflow-y-auto px-4 py-4">
               <div className="bg-elevated rounded-lg p-3 text-sm text-text-primary mb-4 leading-relaxed">
@@ -618,7 +679,8 @@ export default function CalendarPage() {
                   <input
                     type="date"
                     value={rescheduleDate}
-                    onChange={(e) => setRescheduleDate(e.target.value)}
+                    min={todayStr}
+                    onChange={(e) => { setRescheduleDate(e.target.value); setRescheduleError(""); }}
                     className="w-full rounded-md border border-border bg-elevated px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary"
                   />
                 </div>
@@ -627,16 +689,19 @@ export default function CalendarPage() {
                   <input
                     type="time"
                     value={rescheduleTime}
-                    onChange={(e) => setRescheduleTime(e.target.value)}
+                    min={minRescheduleTime}
+                    onChange={(e) => { setRescheduleTime(e.target.value); setRescheduleError(""); }}
                     className="w-full rounded-md border border-border bg-elevated px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary"
                   />
                 </div>
+                <p className="text-[10px] text-text-muted">Timezone: <span className="font-mono">{tz}</span></p>
+                {rescheduleError && <p className="text-xs text-error">{rescheduleError}</p>}
                 <Button onClick={handleReschedule} disabled={rescheduling || !rescheduleDate} className="w-full">
-                  {rescheduling ? "Saving..." : "Reschedule"}
+                  {rescheduling ? "Saving…" : "Reschedule"}
                 </Button>
                 <Button
                   variant="ghost"
-                  onClick={handleUnschedule}
+                  onClick={() => setUnscheduleConfirm(true)}
                   disabled={rescheduling}
                   className="w-full text-error hover:text-error border border-error/30 hover:border-error/50"
                 >
@@ -647,9 +712,9 @@ export default function CalendarPage() {
             <div className="px-4 py-3 border-t border-border">
               <button
                 onClick={() => router.push(`/dashboard/posts/${reschedulePost_.id}`)}
-                className="text-xs text-text-muted hover:text-text-active transition-colors"
+                className="text-xs text-text-muted hover:text-text-active transition-colors inline-flex items-center gap-1 cursor-pointer"
               >
-                View full post →
+                View full post <ArrowRight size={12} />
               </button>
             </div>
           </div>
@@ -665,6 +730,17 @@ export default function CalendarPage() {
           submitting={clashSubmitting}
         />
       )}
+
+      <ConfirmModal
+        open={unscheduleConfirm}
+        title="Unschedule this post?"
+        description="The post will move back to approved status and lose its scheduled slot."
+        confirmLabel="Unschedule"
+        destructive
+        loading={rescheduling}
+        onConfirm={handleUnschedule}
+        onCancel={() => setUnscheduleConfirm(false)}
+      />
     </div>
   );
 }

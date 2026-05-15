@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { login, getMe } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
@@ -17,6 +18,8 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => { document.title = "Sign in · COP Platform"; }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,7 +53,9 @@ export default function LoginPage() {
     <div className="min-h-screen bg-base flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="w-12 h-12 rounded-xl gradient-brand mx-auto mb-4" />
+          <div className="w-12 h-12 rounded-xl bg-primary mx-auto mb-4 flex items-center justify-center">
+              <span className="text-white font-bold text-lg">C</span>
+            </div>
           <h1 className="text-xl font-bold text-text-primary">COP Platform</h1>
           <p className="text-xs text-text-muted mt-1">Sign in to continue</p>
         </div>
@@ -86,9 +91,10 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-colors cursor-pointer"
                   >
-                    {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
               </div>
@@ -97,12 +103,12 @@ export default function LoginPage() {
                 {loading ? "Signing in..." : "Sign in"}
               </Button>
               <div className="text-center">
-                <a
+                <Link
                   href="/forgot-password"
                   className="text-xs text-text-muted hover:text-text-active transition-colors"
                 >
                   Forgot password?
-                </a>
+                </Link>
               </div>
             </form>
           </CardContent>

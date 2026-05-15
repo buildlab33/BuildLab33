@@ -1,13 +1,27 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/auth";
 import { updateMe, changePassword } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "@/components/ui/toast";
 import { Eye, EyeOff } from "lucide-react";
+
+function PwToggle({ show, onToggle }: { show: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={show ? "Hide password" : "Show password"}
+      className="absolute right-1 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-colors cursor-pointer"
+    >
+      {show ? <EyeOff size={16} /> : <Eye size={16} />}
+    </button>
+  );
+}
 
 export default function ProfilePage() {
   const user = useAuthStore((s) => s.user);
@@ -22,7 +36,10 @@ export default function ProfilePage() {
   const [confirmPw, setConfirmPw] = useState("");
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [savingPw, setSavingPw] = useState(false);
+
+  useEffect(() => { document.title = "Profile · Settings"; }, []);
 
   function pwStrength(pw: string): { score: number; label: string; color: string } {
     let score = 0;
@@ -46,13 +63,7 @@ export default function ProfilePage() {
     setSavingProfile(true);
     try {
       await updateMe({ name, email });
-      if (user) {
-        setAuth(
-          { ...user, name, email },
-          localStorage.getItem("access_token")!,
-          localStorage.getItem("refresh_token")!
-        );
-      }
+      if (user) setAuth({ ...user, name, email });
       toast.success("Profile updated");
     } catch {
       toast.error("Failed to update profile");
@@ -77,73 +88,85 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="space-y-4 max-w-lg">
-      <Card>
-        <CardHeader><CardTitle>Profile</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="name">Display name</Label>
-            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div>
-            <Label htmlFor="email">Email address</Label>
-            <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-          </div>
-          <div>
-            <Label>Username</Label>
-            <Input value={user?.username ?? ""} disabled />
-            <p className="text-xs text-text-muted mt-1">Username cannot be changed after registration.</p>
-          </div>
-          <Button className="w-full" disabled={savingProfile} onClick={handleSaveProfile}>
-            {savingProfile ? "Saving..." : "Save Profile"}
-          </Button>
-        </CardContent>
-      </Card>
+    <div>
+      <PageHeader title="Profile" subtitle="Manage your account details and password" />
+      <div className="space-y-4 max-w-lg">
+        <Card>
+          <CardHeader><CardTitle>Profile</CardTitle></CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="name">Display name</Label>
+              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
+            </div>
+            <div>
+              <Label htmlFor="email">Email address</Label>
+              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+            </div>
+            <div>
+              <Label>Username</Label>
+              <Input value={user?.username ?? ""} disabled />
+              <p className="text-xs text-text-muted mt-1">Username cannot be changed after registration.</p>
+            </div>
+            <Button className="w-full" disabled={savingProfile} onClick={handleSaveProfile}>
+              {savingProfile ? "Saving…" : "Save Profile"}
+            </Button>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader><CardTitle>Change Password</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="current-pw">Current password</Label>
-            <div className="relative">
-              <Input id="current-pw" type={showCurrent ? "text" : "password"} value={currentPw} onChange={(e) => setCurrentPw(e.target.value)} className="pr-10" />
-              <button type="button" onClick={() => setShowCurrent(!showCurrent)} className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors">
-                {showCurrent ? <EyeOff size={15} /> : <Eye size={15} />}
-              </button>
-            </div>
-          </div>
-          <div>
-            <Label htmlFor="new-pw">New password</Label>
-            <div className="relative">
-              <Input id="new-pw" type={showNew ? "text" : "password"} value={newPw} onChange={(e) => setNewPw(e.target.value)} className="pr-10" />
-              <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors">
-                {showNew ? <EyeOff size={15} /> : <Eye size={15} />}
-              </button>
-            </div>
-            {newPw && (
-              <div className="mt-2 flex items-center gap-2">
-                <div className="flex gap-1 flex-1">
-                  {[1, 2, 3, 4].map((n) => (
-                    <div
-                      key={n}
-                      className={`h-1 flex-1 rounded-full transition-colors ${strength.score >= n ? strength.color : "bg-border"}`}
-                    />
-                  ))}
-                </div>
-                <span className="text-xs text-text-muted w-12 text-right">{strength.label}</span>
+        <Card>
+          <CardHeader><CardTitle>Change Password</CardTitle></CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="current-pw">Current password</Label>
+              <div className="relative">
+                <Input id="current-pw" type={showCurrent ? "text" : "password"} value={currentPw} onChange={(e) => setCurrentPw(e.target.value)} className="pr-10" autoComplete="current-password" />
+                <PwToggle show={showCurrent} onToggle={() => setShowCurrent(!showCurrent)} />
               </div>
-            )}
-            <p className="text-xs text-text-muted mt-1">Min 8 chars, 1 uppercase, 1 number, 1 special character.</p>
-          </div>
-          <div>
-            <Label htmlFor="confirm-pw">Confirm new password</Label>
-            <Input id="confirm-pw" type="password" value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} />
-          </div>
-          <Button className="w-full" disabled={savingPw || !currentPw || !newPw || !confirmPw} onClick={handleChangePassword}>
-            {savingPw ? "Updating..." : "Update Password"}
-          </Button>
-        </CardContent>
-      </Card>
+            </div>
+            <div>
+              <Label htmlFor="new-pw">New password</Label>
+              <div className="relative">
+                <Input id="new-pw" type={showNew ? "text" : "password"} value={newPw} onChange={(e) => setNewPw(e.target.value)} className="pr-10" autoComplete="new-password" />
+                <PwToggle show={showNew} onToggle={() => setShowNew(!showNew)} />
+              </div>
+              {newPw && (
+                <div className="mt-2 flex items-center gap-2">
+                  <div className="flex gap-1 flex-1">
+                    {[1, 2, 3, 4].map((n) => (
+                      <div
+                        key={n}
+                        className={`h-1 flex-1 rounded-full transition-colors ${strength.score >= n ? strength.color : "bg-border"}`}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-xs text-text-muted w-12 text-right">{strength.label}</span>
+                </div>
+              )}
+              <p className="text-xs text-text-muted mt-1">Min 8 chars, 1 uppercase, 1 number, 1 special character.</p>
+            </div>
+            <div>
+              <Label htmlFor="confirm-pw">Confirm new password</Label>
+              <div className="relative">
+                <Input
+                  id="confirm-pw"
+                  type={showConfirm ? "text" : "password"}
+                  value={confirmPw}
+                  onChange={(e) => setConfirmPw(e.target.value)}
+                  className="pr-10"
+                  autoComplete="new-password"
+                />
+                <PwToggle show={showConfirm} onToggle={() => setShowConfirm(!showConfirm)} />
+              </div>
+              {confirmPw.length > 0 && newPw !== confirmPw && (
+                <p className="text-xs text-error mt-1">Passwords do not match</p>
+              )}
+            </div>
+            <Button className="w-full" disabled={savingPw || !currentPw || !newPw || !confirmPw} onClick={handleChangePassword}>
+              {savingPw ? "Updating…" : "Update Password"}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

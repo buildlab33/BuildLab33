@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/toast";
 import { Building2, Plus, Archive, RotateCcw, Settings } from "lucide-react";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 
 export default function BrandsPage() {
   const router = useRouter();
@@ -19,6 +20,9 @@ export default function BrandsPage() {
   const [loading, setLoading] = useState(true);
   const [showArchived, setShowArchived] = useState(false);
   const [archiving, setArchiving] = useState<string | null>(null);
+  const [archiveTarget, setArchiveTarget] = useState<BrandPublic | null>(null);
+
+  useEffect(() => { document.title = "Brands · COP Platform"; }, []);
 
   const isAdmin = user?.role === "super_admin" || user?.role === "admin";
 
@@ -36,8 +40,11 @@ export default function BrandsPage() {
 
   useEffect(() => { fetchBrands(); }, [showArchived]);
 
-  const handleArchive = async (id: string, name: string) => {
+  const handleArchive = async () => {
+    if (!archiveTarget) return;
+    const { id, name } = archiveTarget;
     setArchiving(id);
+    setArchiveTarget(null);
     try {
       await archiveBrand(id);
       toast.success(`${name} archived`);
@@ -111,11 +118,19 @@ export default function BrandsPage() {
             >
               <div className="flex items-center gap-3 mb-4">
                 {brand.logo_url ? (
-                  <img src={brand.logo_url} alt={brand.name} className="w-10 h-10 rounded-md object-cover flex-shrink-0" />
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={brand.logo_url}
+                    alt={brand.name}
+                    width={40}
+                    height={40}
+                    loading="lazy"
+                    className="w-10 h-10 rounded-md object-cover flex-shrink-0"
+                  />
                 ) : (
                   <div
                     className="w-10 h-10 rounded-md flex-shrink-0 flex items-center justify-center text-white font-bold text-sm leading-none"
-                    style={{ backgroundColor: brand.brand_colour || "#6366f1" }}
+                    style={{ backgroundColor: brand.brand_colour || "var(--color-primary)" }}
                   >
                     {brand.name[0].toUpperCase()}
                   </div>
@@ -133,36 +148,35 @@ export default function BrandsPage() {
                 {brand.status === "active" ? (
                   <>
                     <Button
-                      className="flex-1 text-xs"
+                      size="sm"
+                      className="flex-1"
                       onClick={(e) => { e.stopPropagation(); router.push(`/dashboard/brands/${brand.id}`); }}
                     >
-                      <Settings className="w-3.5 h-3.5 mr-1" />
+                      <Settings size={14} />
                       Manage
                     </Button>
                     {isAdmin && (
-                      <div className="relative group">
-                        <button
-                          disabled={archiving === brand.id}
-                          onClick={(e) => { e.stopPropagation(); handleArchive(brand.id, brand.name); }}
-                          className="flex items-center justify-center w-10 self-stretch rounded-md border border-border bg-surface text-text-secondary hover:bg-elevated hover:text-text-primary transition-colors disabled:opacity-50 py-2"
-                        >
-                          <Archive className="w-3.5 h-3.5" />
-                        </button>
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded text-xs text-white bg-gray-800 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                          Archive
-                        </div>
-                      </div>
+                      <button
+                        disabled={archiving === brand.id}
+                        onClick={(e) => { e.stopPropagation(); setArchiveTarget(brand); }}
+                        aria-label={`Archive ${brand.name}`}
+                        title="Archive"
+                        className="flex items-center justify-center w-9 self-stretch rounded-md border border-border bg-surface text-text-secondary hover:bg-elevated hover:text-text-primary transition-colors disabled:opacity-50 cursor-pointer"
+                      >
+                        <Archive size={14} />
+                      </button>
                     )}
                   </>
                 ) : (
                   isAdmin && (
                     <Button
                       variant="ghost"
-                      className="flex-1 text-xs"
+                      size="sm"
+                      className="flex-1"
                       disabled={archiving === brand.id}
                       onClick={(e) => { e.stopPropagation(); handleRestore(brand.id, brand.name); }}
                     >
-                      <RotateCcw className="w-3.5 h-3.5 mr-1" />
+                      <RotateCcw size={14} />
                       Restore
                     </Button>
                   )
@@ -172,6 +186,17 @@ export default function BrandsPage() {
           ))}
         </div>
       )}
+
+      <ConfirmModal
+        open={!!archiveTarget}
+        title={archiveTarget ? `Archive ${archiveTarget.name}?` : ""}
+        description="Archived brands are hidden from the brand selector and don't appear in dashboards. You can restore them anytime."
+        confirmLabel="Archive"
+        destructive
+        loading={!!archiving && archiving === archiveTarget?.id}
+        onConfirm={handleArchive}
+        onCancel={() => setArchiveTarget(null)}
+      />
     </div>
   );
 }

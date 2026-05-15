@@ -3,9 +3,9 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Sparkles, FileText, Calendar,
-  Newspaper, Users, Send, UserCheck, Briefcase, Settings, LogOut, Menu, X, Bell
+  Newspaper, Users, Send, UserCheck, Briefcase, Settings, LogOut, Menu, X, Bell, CheckCheck
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { getNotifications, getUnreadCount, markNotificationsRead } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui/avatar";
@@ -36,6 +36,7 @@ export function Sidebar() {
     link: string | null; read: boolean; created_at: string;
   }>>([]);
   const [panelOpen, setPanelOpen] = useState(false);
+  const drawerRef = useRef<HTMLDivElement>(null);
 
   const handleLogout = () => {
     clearAuth();
@@ -51,7 +52,12 @@ export function Sidebar() {
     return () => clearInterval(interval);
   }, []);
 
-  // Close panel on outside click — handled via backdrop instead
+  // ESC to close drawer
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setPanelOpen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const handleBellClick = async () => {
     if (!panelOpen) {
@@ -107,10 +113,10 @@ export function Sidebar() {
       </nav>
 
       {/* Bell */}
-      <div className="px-3 py-2 border-t border-border flex-shrink-0 relative">
+      <div className="px-3 py-2 border-t border-border flex-shrink-0">
         <button
           onClick={handleBellClick}
-          className="flex items-center gap-2 w-full px-2 py-2 rounded-md text-text-muted hover:bg-elevated hover:text-text-primary transition-colors text-sm"
+          className="flex items-center gap-2 w-full px-2 py-2 rounded-md text-text-muted hover:bg-elevated hover:text-text-primary transition-colors text-sm cursor-pointer"
         >
           <Bell size={16} className="flex-shrink-0" />
           <span>Notifications</span>
@@ -120,51 +126,6 @@ export function Sidebar() {
             </span>
           )}
         </button>
-
-        {panelOpen && (
-          <>
-            {/* Backdrop — closes panel on outside click */}
-            <div className="fixed inset-0 z-[99]" onClick={() => setPanelOpen(false)} />
-            {/* Panel — fixed inside sidebar footprint, floats above the bell */}
-            <div className="fixed bottom-[110px] left-0 w-[220px] bg-surface border border-border rounded-xl shadow-2xl z-[100] overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-                <span className="text-xs font-semibold text-text-primary">Notifications</span>
-                <button
-                  onClick={handleMarkAllRead}
-                  className="text-xs text-text-muted hover:text-text-active transition-colors"
-                >
-                  Mark all read
-                </button>
-              </div>
-              <div className="max-h-80 overflow-y-auto">
-                {notifications.length === 0 ? (
-                  <p className="text-xs text-text-muted text-center py-8">No notifications yet</p>
-                ) : (
-                  notifications.map((n) => (
-                    <div
-                      key={n.id}
-                      className={`px-4 py-3 border-b border-border last:border-0 cursor-pointer hover:bg-elevated transition-colors ${!n.read ? "bg-primary-muted" : ""}`}
-                      onClick={() => {
-                        markNotificationsRead([n.id]);
-                        setNotifications((prev) =>
-                          prev.map((item) => item.id === n.id ? { ...item, read: true } : item)
-                        );
-                        setUnread((c) => Math.max(0, c - 1));
-                        if (n.link) router.push(n.link);
-                        setPanelOpen(false);
-                      }}
-                    >
-                      <p className="text-xs text-text-primary">{n.message}</p>
-                      <p className="text-[10px] text-text-muted mt-0.5">
-                        {new Date(n.created_at).toLocaleString()}
-                      </p>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </>
-        )}
       </div>
 
       {/* User */}
@@ -223,6 +184,97 @@ export function Sidebar() {
       >
         {navContent}
       </aside>
+
+      {/* Notification drawer — full right-side panel */}
+      {panelOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-[110] bg-black/60"
+            onClick={() => setPanelOpen(false)}
+          />
+          {/* Drawer */}
+          <div
+            ref={drawerRef}
+            className="fixed top-0 right-0 z-[120] h-full w-full max-w-sm bg-surface border-l border-border flex flex-col shadow-2xl"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <Bell size={16} className="text-text-muted" />
+                <span className="text-sm font-bold text-text-primary">Notifications</span>
+                {unread > 0 && (
+                  <span className="flex items-center justify-center min-w-[20px] h-5 rounded-full bg-error text-white text-[10px] font-bold px-1.5">
+                    {unread > 99 ? "99+" : unread}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {unread > 0 && (
+                  <button
+                    onClick={handleMarkAllRead}
+                    className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text-active transition-colors cursor-pointer"
+                  >
+                    <CheckCheck size={13} />
+                    Mark all read
+                  </button>
+                )}
+                <button
+                  onClick={() => setPanelOpen(false)}
+                  className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-elevated text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                >
+                  <X size={15} />
+                </button>
+              </div>
+            </div>
+
+            {/* List */}
+            <div className="flex-1 overflow-y-auto">
+              {notifications.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-6">
+                  <Bell size={32} className="text-text-muted opacity-40" />
+                  <p className="text-sm text-text-muted">No notifications yet</p>
+                </div>
+              ) : (
+                notifications.map((n) => (
+                  <div
+                    key={n.id}
+                    onClick={() => {
+                      markNotificationsRead([n.id]);
+                      setNotifications((prev) =>
+                        prev.map((item) => item.id === n.id ? { ...item, read: true } : item)
+                      );
+                      setUnread((c) => Math.max(0, c - 1));
+                      if (n.link) router.push(n.link);
+                      setPanelOpen(false);
+                    }}
+                    className={`px-5 py-4 border-b border-border last:border-0 cursor-pointer hover:bg-elevated transition-colors ${!n.read ? "bg-primary/5 border-l-2 border-l-primary" : ""}`}
+                  >
+                    {!n.read && (
+                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary mb-1.5" />
+                    )}
+                    <p className="text-sm text-text-primary leading-snug">{n.message}</p>
+                    <p className="text-xs text-text-muted mt-1">
+                      {new Date(n.created_at).toLocaleString()}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 py-3 border-t border-border flex-shrink-0">
+              <Link
+                href="/dashboard/settings/notifications"
+                onClick={() => setPanelOpen(false)}
+                className="text-xs text-text-muted hover:text-text-active transition-colors"
+              >
+                Notification settings →
+              </Link>
+            </div>
+          </div>
+        </>
+      )}
     </>
   );
 }

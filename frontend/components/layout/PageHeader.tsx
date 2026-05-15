@@ -11,9 +11,9 @@ export function PageHeader({ title, subtitle, action, className }: PageHeaderPro
   return (
     <div className={cn("flex items-center justify-between mb-6", className)}>
       <div>
-        <h1 className="text-xl font-bold text-text-primary">{title}</h1>
+        <h1 className="text-2xl font-bold text-text-primary">{title}</h1>
         {subtitle && (
-          <p className="text-xs text-text-muted mt-1">{subtitle}</p>
+          <p className="text-sm text-text-muted mt-1">{subtitle}</p>
         )}
       </div>
       {action && <div>{action}</div>}

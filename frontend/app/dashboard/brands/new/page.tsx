@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "@/components/ui/toast";
-import { ChevronRight, ChevronLeft, Check, Loader2 } from "lucide-react";
+import { ChevronRight, ChevronLeft, Check, Loader2, ChevronDown, Plus, ArrowLeft, ArrowRight } from "lucide-react";
 
 type Step = "basic" | "interview" | "samples" | "preview";
 interface Question { index: number; question: string; }
@@ -40,6 +40,8 @@ const TIMEZONES = [
 export default function NewBrandPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>("basic");
+
+  useEffect(() => { document.title = "New Brand · COP Platform"; }, []);
 
   // Basic info
   const [name, setName] = useState("");
@@ -102,12 +104,13 @@ export default function NewBrandPage() {
   const handleSave = async () => {
     if (!voiceConfig) return;
     setSaving(true);
+    const safeColour = /^#[0-9a-fA-F]{6}$/.test(brandColour) ? brandColour : "#6366f1";
     try {
       const pillars = (voiceConfig.content_pillars as Array<{ name: string; description: string }>) || [];
       const res = await createBrand({
         name,
         industry,
-        brand_colour: brandColour,
+        brand_colour: safeColour,
         default_timezone: timezone,
         content_pillars: pillars,
         hashtag_sets: [],
@@ -158,15 +161,17 @@ export default function NewBrandPage() {
             </div>
             <div>
               <Label htmlFor="timezone">Default timezone</Label>
-              <select
-                id="timezone"
-                value={timezone}
-                onChange={(e) => setTimezone(e.target.value)}
-                className="w-full rounded-md border border-border bg-surface text-text-primary text-sm px-3 py-2 pr-8 focus:outline-none focus:border-border-active appearance-none"
-                style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center" }}
-              >
-                {TIMEZONES.map((tz) => <option key={tz.value} value={tz.value}>{tz.label}</option>)}
-              </select>
+              <div className="relative">
+                <select
+                  id="timezone"
+                  value={timezone}
+                  onChange={(e) => setTimezone(e.target.value)}
+                  className="w-full appearance-none rounded-md border border-border bg-surface text-text-primary text-sm px-3 py-2 pr-9 focus:outline-none focus:border-primary cursor-pointer"
+                >
+                  {TIMEZONES.map((tz) => <option key={tz.value} value={tz.value}>{tz.label}</option>)}
+                </select>
+                <ChevronDown size={16} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
+              </div>
             </div>
             <Button className="w-full" disabled={!canProceedBasic} onClick={() => setStep("interview")}>
               Next: Brand Voice Interview <ChevronRight className="w-4 h-4 ml-1" />
@@ -222,13 +227,18 @@ export default function NewBrandPage() {
               )}
             </div>
             <div className="flex justify-between text-xs text-text-muted">
-              <button onClick={() => setStep("basic")} className="hover:text-text-secondary transition-colors">← Back to basic info</button>
+              <button
+                onClick={() => setStep("basic")}
+                className="hover:text-text-secondary transition-colors inline-flex items-center gap-1 cursor-pointer"
+              >
+                <ArrowLeft size={12} /> Back to basic info
+              </button>
               <button
                 onClick={() => setStep("samples")}
                 disabled={!canProceedInterview}
-                className="hover:text-text-secondary transition-colors disabled:opacity-40"
+                className="hover:text-text-secondary transition-colors disabled:opacity-40 inline-flex items-center gap-1 cursor-pointer"
               >
-                Skip to sample posts →
+                Skip to sample posts <ArrowRight size={12} />
               </button>
             </div>
           </div>
@@ -263,9 +273,9 @@ export default function NewBrandPage() {
           {samplePosts.length < 10 && (
             <button
               onClick={() => setSamplePosts([...samplePosts, ""])}
-              className="text-xs text-text-muted hover:text-text-active transition-colors"
+              className="text-xs text-text-muted hover:text-text-active transition-colors inline-flex items-center gap-1 cursor-pointer"
             >
-              + Add another sample
+              <Plus size={12} /> Add another sample
             </button>
           )}
           <Button className="w-full" disabled={generatingConfig} onClick={handleGenerateConfig}>
@@ -275,8 +285,11 @@ export default function NewBrandPage() {
               <>Generate Brand Voice Config <ChevronRight className="w-4 h-4 ml-1" /></>
             )}
           </Button>
-          <button onClick={() => setStep("interview")} className="text-xs text-text-muted hover:text-text-secondary transition-colors block">
-            ← Back to interview
+          <button
+            onClick={() => setStep("interview")}
+            className="text-xs text-text-muted hover:text-text-secondary transition-colors inline-flex items-center gap-1 cursor-pointer"
+          >
+            <ArrowLeft size={12} /> Back to interview
           </button>
         </div>
       </div>

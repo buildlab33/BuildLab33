@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; COPBot/1.0)"}
 TIMEOUT = 10.0
-MAX_CHARS = 3000  # per source
+MAX_CHARS = 10000  # per source
 SHORT_THRESHOLD = 200
 
 
